@@ -1,3 +1,5 @@
+import queryFunctions as qf
+
 try:
     import tkinter as tk
     from tkinter import ttk
@@ -105,15 +107,16 @@ class CreateDistro(tk.Frame):
         cancelButton.grid(row=9,column=1, sticky='s')
         createButton.grid(row=9,column=4, sticky='s')
 
-
 class SearchDistros(tk.Frame):
     
-    yearsFromDB = ['']
-    regionsFromDB = ['']
-    facilitiesFromDB = ['']
-    taxGroupsFromDB = ['']
-    lifeStagesFromDB = ['']
-    speciesFromDB = ['']
+    dbLists = {
+        'year' : [''],
+        'region' : [''],
+        'facility' : [''],
+        'taxGroup' : [''],
+        'lifeStage' : [''],
+        'species' : ['']
+    }
     
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
@@ -122,60 +125,24 @@ class SearchDistros(tk.Frame):
         titleLabel.grid(row=0, column=1, pady=10, columnspan=5)
 
         # Fiscal Years
-        yearLabel = tk.Label(self, text='Fiscal Year:', font=LARGE_FONT)
-        yearList = tk.StringVar(self)
-        yearList.set('Select...')
-        yearMenu = tk.OptionMenu(self, yearList, *self.yearsFromDB)
-        
-        yearLabel.grid(row=1, column=2)
-        yearMenu.grid(row=1, column=3, pady=5)
+        self.addOM('year', 1)
         
         # Region Names
-        regionLabel = tk.Label(self, text='Facility Region:', font=LARGE_FONT)
-        regionList = tk.StringVar(self)
-        regionList.set('Select...')
-        regionMenu = tk.OptionMenu(self, regionList, *self.regionsFromDB)
-        
-        regionLabel.grid(row=2, column=2)
-        regionMenu.grid(row=2, column=3, pady=5)
+        self.addOM('region', 2)
         
         # Facility Names
-        facilityLabel = tk.Label(self, text='Facility Name:', font=LARGE_FONT)
-        facilityList = tk.StringVar(self)
-        facilityList.set('Select...')
-        facilityMenu = tk.OptionMenu(self, facilityList, *self.facilitiesFromDB)
         
-        facilityLabel.grid(row=3, column=2)
-        facilityMenu.grid(row=3, column=3, pady=5)
+        self.addOM('facility', 3)
         
         # Taxonomic Groups
-        taxGroupLabel = tk.Label(self, text='Taxonomic Group:', font=LARGE_FONT)
-        taxGroupList = tk.StringVar(self)
-        taxGroupList.set('Select...')
-        taxGroupMenu = tk.OptionMenu(self, taxGroupList, *self.taxGroupsFromDB)
-        
-        taxGroupLabel.grid(row=4, column=2)
-        taxGroupMenu.grid(row=4, column=3, pady=5)
+        self.addOM('taxGroup', 4)
         
         # Life Stage
-        lifeStageLabel = tk.Label(self, text='Life Stage:', font=LARGE_FONT)
-        lifeStageList = tk.StringVar(self)
-        lifeStageList.set('Select...')
-        lifeStageMenu = tk.OptionMenu(self, lifeStageList, *self.lifeStagesFromDB)
-        
-        lifeStageLabel.grid(row=5, column=2)
-        lifeStageMenu.grid(row=5, column=3, pady=5)
+        self.addOM('lifeStage', 5)
         
         # Species 
-        speciesLabel = tk.Label(self, text='Species:', font=LARGE_FONT)
-        speciesList = tk.StringVar(self)
-        speciesList.set('Select...')
-        speciesMenu = tk.OptionMenu(self, speciesList, *self.lifeStagesFromDB)
+        self.addOM('species', 6)
         
-        speciesLabel.grid(row=6, column=2)
-        speciesMenu.grid(row=6, column=3, pady=5)
-        
-        # Search Button        
         # Buttons
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                command= lambda: controller.show_frame(MainMenu))
@@ -184,6 +151,14 @@ class SearchDistros(tk.Frame):
         
         cancelButton.grid(row=7, column=1)
         searchButton.grid(row=7, column=5, pady=5)
+    
+    def addOM(self, name, rowDD):
+        newLabel = tk.Label(self, text=f'{name}:', font=LARGE_FONT)
+        newList = tk.StringVar(self)
+        newList.set('Select...')
+        newMenu = tk.OptionMenu(self, newList, *self.dbLists[name])
+        newLabel.grid(row=rowDD, column=2)
+        newMenu.grid(row=rowDD, column=3, pady=5)
 
 def main():
     app = ManageWindows()
