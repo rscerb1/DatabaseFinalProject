@@ -131,10 +131,11 @@ class SearchDistros(tk.Frame):
         self.addOM('region', 2)
         
         # Facility Names
-        
+        self.dbLists['facility'] = qf.getFacilities()
         self.addOM('facility', 3)
         
         # Taxonomic Groups
+        self.dbLists['taxGroup'] = qf.getTaxGroup()
         self.addOM('taxGroup', 4)
         
         # Life Stage
@@ -155,7 +156,7 @@ class SearchDistros(tk.Frame):
     def addOM(self, name, rowDD):
         newLabel = tk.Label(self, text=f'{name}:', font=LARGE_FONT)
         newList = tk.StringVar(self)
-        newList.set('Select...')
+        newList.set('Any')
         newMenu = tk.OptionMenu(self, newList, *self.dbLists[name])
         newLabel.grid(row=rowDD, column=2)
         newMenu.grid(row=rowDD, column=3, pady=5)

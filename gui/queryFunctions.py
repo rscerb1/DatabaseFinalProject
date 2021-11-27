@@ -12,12 +12,15 @@ def selectListQuery(sql):
   cursor = database.cursor()
   cursor.execute(sql)
   list = cursor.fetchall()
+  list = [i[0] for i in list]
   return list
 
 # facility list
 def getFacilities():
-    sql = f"SELECT NAME FROM FACILITY;"
-    list = selectListQuery(sql)
-    list = [i[0] for i in list]
-    return list
+  sql = f"SELECT NAME FROM FACILITY;"
+  return selectListQuery(sql)
 
+# tax group list
+def getTaxGroup():
+  sql = f"SELECT DISTINCT taxonomic_group FROM SPECIES"
+  return selectListQuery(sql)
