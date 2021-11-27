@@ -110,11 +110,11 @@ class CreateDistro(tk.Frame):
 class SearchDistros(tk.Frame):
     
     dbLists = {
-        'year' : [''],
-        'region' : [''],
-        'facility' : [''],
-        'taxGroup' : [''],
-        'lifeStage' : [''],
+        'years' : [''],
+        'regions' : [''],
+        'facilities' : [''],
+        'taxGroups' : [''],
+        'lifeStages' : [''],
         'species' : ['']
     }
     
@@ -125,23 +125,27 @@ class SearchDistros(tk.Frame):
         titleLabel.grid(row=0, column=1, pady=10, columnspan=5)
 
         # Fiscal Years
-        self.addOM('year', 1)
+        self.dbLists['years'] = qf.getYears()
+        self.addOM('years', 1)
         
         # Region Names
-        self.addOM('region', 2)
+        self.dbLists['regions'] = qf.getRegions()
+        self.addOM('regions', 2)
         
         # Facility Names
-        self.dbLists['facility'] = qf.getFacilities()
-        self.addOM('facility', 3)
+        self.dbLists['facilities'] = qf.getFacilities()
+        self.addOM('facilities', 3)
         
         # Taxonomic Groups
-        self.dbLists['taxGroup'] = qf.getTaxGroup()
-        self.addOM('taxGroup', 4)
+        self.dbLists['taxGroups'] = qf.getTaxGroups()
+        self.addOM('taxGroups', 4)
         
-        # Life Stage
-        self.addOM('lifeStage', 5)
+        # Life Stages
+        self.dbLists['lifeStages'] = qf.getLifeStages()
+        self.addOM('lifeStages', 5)
         
         # Species 
+        self.dbLists['species'] = qf.getSpecies()
         self.addOM('species', 6)
         
         # Buttons

@@ -15,14 +15,34 @@ def selectListQuery(sql):
   list = [i[0] for i in list]
   return list
 
-# facility list
+# Fiscal Years List
+def getYears():
+  sql = ""
+  return selectListQuery(sql)
+  
+# Region Names List
+def getRegions():
+  sql = ""
+  return selectListQuery(sql)
+
+# Facility Names List
 def getFacilities():
   sql = f"SELECT NAME FROM FACILITY;"
   return selectListQuery(sql)
 
-# tax group list
-def getTaxGroup():
+# Taxonomic Groups list
+def getTaxGroups():
   sql = f"SELECT DISTINCT taxonomic_group FROM SPECIES;"
+  return selectListQuery(sql)
+
+# Life Stages List
+def getLifeStages():
+  sql = ""
+  return selectListQuery(sql)
+
+# Species List
+def getSpecies():
+  sql = ""
   return selectListQuery(sql)
 
 
