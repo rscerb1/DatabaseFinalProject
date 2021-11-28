@@ -22,6 +22,7 @@ INSERT INTO SPECIES (is_recreational, is_aquatic, ITIS_NUMBER, taxonomic_group, 
 
 -- Distrobutions 
 INSERT INTO DISTRIBUTION (Date, Count, Fname, ITIS) VALUES ('2020-01-02',12345,'North Eastern',167680);
+
 INSERT INTO DISTRIBUTION (Date, Count, Fname, ITIS) VALUES ('2020-02-01',23462,'North Eastern',167678);
 INSERT INTO DISTRIBUTION (Date, Count, Fname, ITIS) VALUES ('2020-03-10',22334,'North Eastern',167680);
 INSERT INTO DISTRIBUTION (Date, Count, Fname, ITIS) VALUES ('2020-08-21',13456,'Atlantic',167678);
@@ -37,3 +38,4 @@ INSERT INTO HATCHED_DISTRIBUTION (Average_length,life_stage,Average_weight,HID) 
 
 -- Released
 INSERT INTO RELEASED (Distribution_ID, Latitude, Longitude, HID) VALUES ()
+INSERT INTO HATCHED_DISTRIBUTION (Average_length,life_stage,Average_weight,HID) VALUES ()

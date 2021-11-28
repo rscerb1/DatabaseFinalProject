@@ -110,14 +110,23 @@ class CreateDistro(tk.Frame):
 class SearchDistros(tk.Frame):
     
     dbLists = {
-        'years' : [''],
-        'regions' : [''],
-        'facilities' : [''],
-        'taxGroups' : [''],
-        'lifeStages' : [''],
-        'species' : ['']
+        'years' : [],
+        'regions' : [],
+        'facilities' : [],
+        'taxGroups' : [],
+        'lifeStages' : ['Egg', 'Juvenile', 'Adult'],
+        'species' : []
     }
     
+    currentValue = {
+        'years' : '',
+        'regions' : '',
+        'facilities' : '',
+        'taxGroups' : '',
+        'lifeStages' : '',
+        'species' : ''
+    }
+        
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
         
@@ -141,7 +150,6 @@ class SearchDistros(tk.Frame):
         self.addOM('taxGroups', 4)
         
         # Life Stages
-        self.dbLists['lifeStages'] = qf.getLifeStages()
         self.addOM('lifeStages', 5)
         
         # Species 
@@ -152,18 +160,22 @@ class SearchDistros(tk.Frame):
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                command= lambda: controller.show_frame(MainMenu))
         searchButton = tk.Button(self, text='Search', font=LARGE_FONT,
-                                command= lambda: controller.show_frame(MainMenu))
+                                command= lambda: self.getValues())
         
         cancelButton.grid(row=7, column=1)
         searchButton.grid(row=7, column=5, pady=5)
     
     def addOM(self, name, rowDD):
         newLabel = tk.Label(self, text=f'{name}:', font=LARGE_FONT)
-        newList = tk.StringVar(self)
-        newList.set('Any')
-        newMenu = tk.OptionMenu(self, newList, *self.dbLists[name])
+        self.currentValue[name] = tk.StringVar(self)
+        self.currentValue[name].set('Any')
+        newMenu = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
         newLabel.grid(row=rowDD, column=2)
         newMenu.grid(row=rowDD, column=3, pady=5)
+        
+    def getValues(self):
+        for key in self.currentValue:
+            print(self.currentValue[key].get())
 
 def main():
     app = ManageWindows()

@@ -17,12 +17,12 @@ def selectListQuery(sql):
 
 # Fiscal Years List
 def getYears():
-  sql = ""
+  sql = "SELECT DISTINCT DATE FROM DISTRIBUTION"
   return selectListQuery(sql)
   
 # Region Names List
 def getRegions():
-  sql = ""
+  sql = "SELECT Name FROM REGION"
   return selectListQuery(sql)
 
 # Facility Names List
@@ -35,14 +35,9 @@ def getTaxGroups():
   sql = f"SELECT DISTINCT taxonomic_group FROM SPECIES;"
   return selectListQuery(sql)
 
-# Life Stages List
-def getLifeStages():
-  sql = ""
-  return selectListQuery(sql)
-
 # Species List
 def getSpecies():
-  sql = ""
+  sql = "SELECT Name FROM SPECIES"
   return selectListQuery(sql)
 
 
