@@ -25,7 +25,7 @@ class ManageWindows(tk.Tk):
 
         # make dict of all the frame classes
         self.frames = {}
-        for f in (MainMenu, CreateDistro, SearchDistros): # add every class that gets its own frame here
+        for f in (MainMenu, CreateDistro, SearchDistros):
             frame = f(container, self)
             self.frames[f] = frame
             frame.grid(row=0, column=0, sticky='nsew')
@@ -107,10 +107,25 @@ class CreateDistro(tk.Frame):
         cancelButton.grid(row=9,column=1, sticky='s')
         createButton.grid(row=9,column=4, sticky='s')
 
+# class SearchResults(tk.Frame):
+    
+#     distros = []
+    
+#     def __init__(self, parent, controller):
+#         tk.Frame.__init__(self,parent)
+        
+    
+#     def addDistro(ID, Date, Facility, Count, Species):
+            
+        
+#     def setDistros():
+        
+        
+
 class SearchDistros(tk.Frame):
     
     dbLists = {
-        'years' : [],
+        'Date' : [],
         'regions' : [],
         'facilities' : [],
         'taxGroups' : [],
@@ -119,12 +134,21 @@ class SearchDistros(tk.Frame):
     }
     
     currentValue = {
-        'years' : '',
-        'regions' : '',
-        'facilities' : '',
-        'taxGroups' : '',
-        'lifeStages' : '',
-        'species' : ''
+        'Date' : None,
+        'regions' : None,
+        'facilities' : None,
+        'taxGroups' : None,
+        'lifeStages' : None,
+        'species' : None
+    }
+    
+    menus = {
+        'Date' : None,
+        'regions' : None,
+        'facilities' : None,
+        'taxGroups' : None,
+        'lifeStages' : None,
+        'species' : None
     }
         
     def __init__(self, parent, controller):
@@ -134,48 +158,75 @@ class SearchDistros(tk.Frame):
         titleLabel.grid(row=0, column=1, pady=10, columnspan=5)
 
         # Fiscal Years
-        self.dbLists['years'] = qf.getYears()
-        self.addOM('years', 1)
+        self.dbLists['Date'] = qf.getYears()
+        self.addOM('Date', 1, 'Year')
         
         # Region Names
         self.dbLists['regions'] = qf.getRegions()
-        self.addOM('regions', 2)
+        self.addOM('regions', 2, 'Region')
+        self.currentValue['regions'].trace_variable('w', self.updateFaciliyList)
         
         # Facility Names
         self.dbLists['facilities'] = qf.getFacilities()
-        self.addOM('facilities', 3)
+        self.addOM('facilities', 3, 'Facility Name')
+        
+        # Life Stages
+        self.addOM('lifeStages', 4, 'Life Stage')
         
         # Taxonomic Groups
         self.dbLists['taxGroups'] = qf.getTaxGroups()
-        self.addOM('taxGroups', 4)
-        
-        # Life Stages
-        self.addOM('lifeStages', 5)
-        
+        self.addOM('taxGroups', 5, 'Taxonomic Group')
+        self.currentValue['taxGroups'].trace_variable('w', self.updateSpeciesList)
+
         # Species 
         self.dbLists['species'] = qf.getSpecies()
-        self.addOM('species', 6)
+        self.addOM('species', 6, 'Species')
         
         # Buttons
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                command= lambda: controller.show_frame(MainMenu))
+        
+        clearButton = tk.Button(self, text='Clear Search', font=LARGE_FONT,
+                               command= lambda: self.resetLists())
+        
         searchButton = tk.Button(self, text='Search', font=LARGE_FONT,
                                 command= lambda: self.getValues())
         
         cancelButton.grid(row=7, column=1)
+        clearButton.grid(row=7, column=2, columnspan=2)
         searchButton.grid(row=7, column=5, pady=5)
     
-    def addOM(self, name, rowDD):
-        newLabel = tk.Label(self, text=f'{name}:', font=LARGE_FONT)
+    def addOM(self, name, rowDD, label):
+        newLabel = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
         self.currentValue[name] = tk.StringVar(self)
-        self.currentValue[name].set('Any')
-        newMenu = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
+        self.currentValue[name].set('Any..')
+        self.menus[name] = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
         newLabel.grid(row=rowDD, column=2)
-        newMenu.grid(row=rowDD, column=3, pady=5)
+        self.menus[name].grid(row=rowDD, column=3, pady=5)
+        
+    def resetLists(self):
+        for key in self.currentValue:
+            if(key != 'lifeStage'):
+                self.currentValue[key].set('Any..')
         
     def getValues(self):
         for key in self.currentValue:
-            print(self.currentValue[key].get())
+            value = self.currentValue[key].get()
+            if(value != 'Any..'):
+                print(f"{key} = {value}")
+
+    def updateFaciliyList(self, *args):
+        self.dbLists['facilities'] = qf.getFacilities(self.currentValue['regions'].get())
+        self.menus['facilities']['menu'].delete(0, 'end')
+        for facility in self.dbLists['facilities']:
+            self.menus['facilities']['menu'].add_command(label=facility, command=tk._setit(self, facility))
+            
+    def updateSpeciesList(self, *args):
+        self.dbLists['species'] = qf.getSpecies(self.currentValue['taxGroups'].get())
+        self.menus['species']['menu'].delete(0, 'end')
+        for species in self.dbLists['species']:
+            self.menus['species']['menu'].add_command(label=species, command=tk._setit(self, species))
+        
 
 def main():
     app = ManageWindows()
