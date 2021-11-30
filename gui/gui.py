@@ -203,7 +203,7 @@ class SearchDistros(tk.Frame):
         self.menus[name] = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
         newLabel.grid(row=rowDD, column=2)
         self.menus[name].grid(row=rowDD, column=3, pady=5)
-        
+    
     def resetLists(self):
         for key in self.currentValue:
             if(key != 'lifeStage'):
