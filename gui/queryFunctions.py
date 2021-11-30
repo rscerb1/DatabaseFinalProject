@@ -1,11 +1,20 @@
 import mysql.connector
 
+# database = mysql.connector.connect(
+#   host="triton.towson.edu",
+#   user="acochr5",
+#   password="COSC*8z32u",
+#   database="acochr5db",
+#   port= '3360'
+# )
+
 database = mysql.connector.connect(
   host="localhost",
   user="python",
   password="12qwaszx",
-  database="acochr5db"
+  database="dbproj"
 )
+
 
 # select a list from the database, return list
 def selectListQuery(sql):
@@ -17,8 +26,12 @@ def selectListQuery(sql):
 
 # Fiscal Years List
 def getYears():
-  sql = "SELECT DISTINCT DATE FROM DISTRIBUTION"
-  return selectListQuery(sql)
+  sql = "SELECT DISTINCT YEAR(DATE) FROM DISTRIBUTION"
+  dates = selectListQuery(sql)
+  years = []
+  for x in dates:
+    years.append(x)
+  return years
   
 # Region Names List
 def getRegions():
@@ -26,8 +39,10 @@ def getRegions():
   return selectListQuery(sql)
 
 # Facility Names List
-def getFacilities():
-  sql = f"SELECT NAME FROM FACILITY;"
+def getFacilities(region = None):
+  sql = f"SELECT NAME FROM FACILITY WHERE R_Name = '{region}';"
+  if(region == None):
+    sql = f"SELECT NAME FROM FACILITY;"
   return selectListQuery(sql)
 
 # Taxonomic Groups list
@@ -36,8 +51,10 @@ def getTaxGroups():
   return selectListQuery(sql)
 
 # Species List
-def getSpecies():
-  sql = "SELECT Name FROM SPECIES"
+def getSpecies(taxGroup = None):
+  sql = f"SELECT Name FROM SPECIES WHERE taxonomic_group = '{taxGroup}'"
+  if(taxGroup == None):
+    sql = "SELECT Name FROM SPECIES"
   return selectListQuery(sql)
 
 
@@ -50,5 +67,3 @@ def newDistro(date, count, facility, itis, hatched=False, life_stage='Egg', len=
   cursor = database.cursor()
   cursor.execute(sql)
   database.commit
-
-  
