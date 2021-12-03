@@ -2,7 +2,7 @@ import queryFunctions as qf
 
 try:
     import tkinter as tk
-    from tkinter import ttk
+    from tkinter import ttk, W
 except ImportError:
     import Tkinter as tk
     import ttk
@@ -25,7 +25,7 @@ class ManageWindows(tk.Tk):
 
         # make dict of all the frame classes
         self.frames = {}
-        for f in (MainMenu, CreateDistro, SearchDistros, EditDistro, DuplicateDistro):
+        for f in (MainMenu, CreateDistro, SearchDistros, EditDistro, DuplicateDistro, AddSpecies):
             frame = f(container, self)
             self.frames[f] = frame
             frame.grid(row=0, column=0, sticky='nsew')
@@ -69,7 +69,7 @@ class MainMenu(Page):
         deleteButton.pack(padx=10, pady=10)
 
         speciesButton = tk.Button(self, text='Add Species', font=LARGE_FONT,
-                                 command=lambda: controller.show_frame(SearchDistros))
+                                 command=lambda: controller.show_frame(AddSpecies))
         speciesButton.pack(padx=10, pady=10)
 
 
@@ -288,6 +288,57 @@ class DuplicateDistro(tk.Frame):
         cancelButton.grid(row=9, column=1, sticky='s')
         createButton.grid(row=9, column=4, sticky='s')
 
+class AddSpecies(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        titleLabel = tk.Label(self, text='Add Species', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+
+        # Recreational
+        recBool = tk.IntVar();
+        recLabel = tk.Label(self, text='Recreational:', font=LARGE_FONT)
+        recEntry = tk.Checkbutton(self,variable=recBool, onvalue=1, offvalue=0)
+
+        recLabel.grid(row=1, column=1)
+        recEntry.grid(row=1, column=3)
+
+        # Aquatic
+        aquaBool = tk.IntVar();
+        aquaLabel = tk.Label(self, text='Aquatic:', font=LARGE_FONT)
+        aquaEntry = tk.Checkbutton(self,variable=aquaBool, onvalue=1, offvalue=0)
+
+        aquaLabel.grid(row=2, column=1)
+        aquaEntry.grid(row=2, column=3)
+
+        #ITIS NUMBER
+        ITISLabel = tk.Label(self, text='Itis Number:', font=LARGE_FONT)
+        ITISEntry = tk.Entry(self)
+
+        ITISLabel.grid(row=3, column=1)
+        ITISEntry.grid(row=3, column=3)
+        #Taxonomic Group
+        taxLabel = tk.Label(self, text='Taxonomic group:', font=LARGE_FONT)
+        taxEntry = tk.Entry(self)
+
+        taxLabel.grid(row=4,column=1)
+        taxEntry.grid(row=4,column=3)
+
+        # Name
+        nameLabel = tk.Label(self, text='Name:', font=LARGE_FONT)
+        nameEntry = tk.Entry(self)
+
+        nameLabel.grid(row=5, column=1)
+        nameEntry.grid(row=5, column=3)
+
+        # Buttons
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+
+        createButton = tk.Button(self, text='Add', font=LARGE_FONT,
+                                 command=lambda: qf.addSpecies(recBool.get(), aquaBool.get(), ITISEntry.get(),
+                                                               taxEntry.get(), nameEntry.get()))
+        cancelButton.grid(row=9, column=1, sticky='s')
+        createButton.grid(row=9, column=4, sticky='s')
 def main():
     app = ManageWindows()
     app.mainloop()

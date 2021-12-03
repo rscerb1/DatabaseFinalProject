@@ -89,9 +89,7 @@ def distroExists(d_id):
   cursor = database.cursor()
   cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = '{d_id}';")
   result = cursor.fetchall()
-  d = result[0][0]
-  d= str(d.year)+"-"+str(d.month)+"-"+str(d.day)
-  print(d)
+
   if(len(result)==0):
     type=0
   else:
@@ -121,16 +119,21 @@ def distroExists(d_id):
         type=5
 
   if type!=-1:
-    print(result[0][0].strftime('%Y-%m-%d'))
-    print(result[0][1])
-    print(result[0][2])
-    print({result[0][4]})
     cursor.execute("INSERT INTO DISTRIBUTION (Date, Count, Fname, S_ITIS) VALUES (%s,%s,%s,%s);",
                    (result[0][0].strftime('%Y-%m-%d'), result[0][1], result[0][2], result[0][4]))
     tkinter.messagebox.showinfo("Database Success", "Successfully duplicated distribution!")
     #ask if we make this so it takes hatched, or not
     database.commit()
   else:
-    tkinter.messagebox.showwarning("Database Error", "Was not able to duplicate distribution")
+    tkinter.messagebox.showerror("Database Error", "Was not able to duplicate distribution")
   return type
 
+def addSpecies(is_recreational, is_aquatic, ITIS, taxonomic_group, name):
+  try:
+    cursor = database.cursor()
+    cursor.execute("INSERT INTO SPECIES (is_recreational, is_aquatic, ITIS_NUMBER, taxonomic_group, Name) VALUES (%s,"
+                   "%s,%s,%s,%s);",(is_recreational, is_aquatic, ITIS, taxonomic_group, name))
+    database.commit()
+    tkinter.messagebox.showinfo("Database Success", "Successfully added species!")
+  except mysql.connector.Error as err:
+    tkinter.messagebox.showerror("Database Error", err)
