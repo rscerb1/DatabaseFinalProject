@@ -137,3 +137,12 @@ def addSpecies(is_recreational, is_aquatic, ITIS, taxonomic_group, name):
     tkinter.messagebox.showinfo("Database Success", "Successfully added species!")
   except mysql.connector.Error as err:
     tkinter.messagebox.showerror("Database Error", err)
+
+def deleteDistro(d_id):
+  try:
+    cursor = database.cursor()
+    cursor.execute(f"DELETE FROM DISTRIBUTION WHERE Distribution_ID = {d_id};")
+    database.commit()
+    tkinter.messagebox.showinfo("Database Success", f"Successfully deleted distribution ID {d_id}!")
+  except mysql.connector.Error as err:
+    tkinter.messagebox.showerror("Database Error", err)

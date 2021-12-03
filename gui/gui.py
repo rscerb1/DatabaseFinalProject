@@ -1,3 +1,5 @@
+import tkinter.messagebox
+
 import queryFunctions as qf
 
 try:
@@ -25,7 +27,7 @@ class ManageWindows(tk.Tk):
 
         # make dict of all the frame classes
         self.frames = {}
-        for f in (MainMenu, CreateDistro, SearchDistros, EditDistro, DuplicateDistro, AddSpecies):
+        for f in (MainMenu, CreateDistro, SearchDistros, EditDistro, DuplicateDistro, DeleteDistro, AddSpecies):
             frame = f(container, self)
             self.frames[f] = frame
             frame.grid(row=0, column=0, sticky='nsew')
@@ -65,7 +67,7 @@ class MainMenu(Page):
         duplicateButton.pack(padx=10, pady=10)
 
         deleteButton = tk.Button(self, text='Delete Distribution', font=LARGE_FONT,
-                                 command=lambda: controller.show_frame(CreateDistro))
+                                 command=lambda: controller.show_frame(DeleteDistro))
         deleteButton.pack(padx=10, pady=10)
 
         speciesButton = tk.Button(self, text='Add Species', font=LARGE_FONT,
@@ -287,6 +289,33 @@ class DuplicateDistro(tk.Frame):
 
         cancelButton.grid(row=9, column=1, sticky='s')
         createButton.grid(row=9, column=4, sticky='s')
+
+class DeleteDistro(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        titleLabel = tk.Label(self, text='Delete Distribution', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+
+        # Date
+        distroIDLabel = tk.Label(self, text='Distribution ID:', font=LARGE_FONT)
+        distroIDEntry = tk.Entry(self)
+
+        distroIDLabel.grid(row=1, column=1)
+        distroIDEntry.grid(row=1, column=3)
+
+        # Buttons
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+        createButton = tk.Button(self, text='Delete', font=LARGE_FONT,
+                                 command=lambda: self.confirm(distroIDEntry.get()))
+
+        cancelButton.grid(row=9, column=1, sticky='s')
+        createButton.grid(row=9, column=4, sticky='s')
+
+    def confirm(self, d_id):
+        check = tkinter.messagebox.askyesno("Delete Distribution", "Are you sure you want to delete this distribution?")
+        if check:
+            qf.deleteDistro(d_id)
 
 class AddSpecies(tk.Frame):
     def __init__(self, parent, controller):
