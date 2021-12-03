@@ -25,7 +25,7 @@ class ManageWindows(tk.Tk):
 
         # make dict of all the frame classes
         self.frames = {}
-        for f in (MainMenu, CreateDistro, SearchDistros):
+        for f in (MainMenu, CreateDistro, SearchDistros, EditDistro, DuplicateDistro):
             frame = f(container, self)
             self.frames[f] = frame
             frame.grid(row=0, column=0, sticky='nsew')
@@ -55,6 +55,22 @@ class MainMenu(Page):
         searchButton = tk.Button(self, text = 'Search Distribution Report', font = LARGE_FONT,
                             command = lambda: controller.show_frame(SearchDistros))
         searchButton.pack(padx=10, pady=10)
+
+        editButton = tk.Button(self, text='Edit Distribution', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(EditDistro))
+        editButton.pack(padx=10, pady=10)
+
+        duplicateButton = tk.Button(self, text='Duplicate Distribution', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(DuplicateDistro))
+        duplicateButton.pack(padx=10, pady=10)
+
+        deleteButton = tk.Button(self, text='Delete Distribution', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(CreateDistro))
+        deleteButton.pack(padx=10, pady=10)
+
+        speciesButton = tk.Button(self, text='Add Species', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(SearchDistros))
+        speciesButton.pack(padx=10, pady=10)
 
 
 class CreateDistro(tk.Frame):
@@ -227,6 +243,50 @@ class SearchDistros(tk.Frame):
         for species in self.dbLists['species']:
             self.menus['species']['menu'].add_command(label=species, command=tk._setit(self, species))
         
+class EditDistro(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self,parent)
+        titleLabel = tk.Label(self, text='Edit Distribution', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+
+        # Date
+        dateLabel = tk.Label(self, text='Date:', font=LARGE_FONT)
+        dateEntry = tk.Entry(self)
+
+        dateLabel.grid(row=1, column=1)
+        dateEntry.grid(row=1, column=3)
+
+        # Buttons
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+        createButton = tk.Button(self, text='Create', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+
+        cancelButton.grid(row=9, column=1, sticky='s')
+        createButton.grid(row=9, column=4, sticky='s')
+
+
+class DuplicateDistro(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        titleLabel = tk.Label(self, text='Duplicate Distribution', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+
+        # Date
+        distroIDLabel = tk.Label(self, text='Distribution ID:', font=LARGE_FONT)
+        distroIDEntry = tk.Entry(self)
+
+        distroIDLabel.grid(row=1, column=1)
+        distroIDEntry.grid(row=1, column=3)
+
+        # Buttons
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+        createButton = tk.Button(self, text='Duplicate', font=LARGE_FONT,
+                                 command=lambda: qf.distroExists(distroIDEntry.get()))
+
+        cancelButton.grid(row=9, column=1, sticky='s')
+        createButton.grid(row=9, column=4, sticky='s')
 
 def main():
     app = ManageWindows()

@@ -1,4 +1,7 @@
+from datetime import datetime
+
 import mysql.connector
+import tkinter.messagebox
 
 # database = mysql.connector.connect(
 #   host="triton.towson.edu",
@@ -8,11 +11,12 @@ import mysql.connector
 #   port= '3360'
 # )
 
-database = mysql.connector.connect(
-  host="localhost",
-  user="python",
-  password="12qwaszx",
-  database="dbproj"
+database=mysql.connector.connect(
+  user="acochr5",
+  password="COSC*8z32u",
+  host="triton.towson.edu",
+  port=3360,
+  database="acochr5db"
 )
 
 
@@ -67,3 +71,66 @@ def newDistro(date, count, facility, itis, hatched=False, life_stage='Egg', len=
   cursor = database.cursor()
   cursor.execute(sql)
   database.commit
+
+
+# get distribution
+def distroExists(d_id):
+  # -1 error
+  # 0 doesn't exist
+  # 1 released distribution
+  # 2 transfer distribution
+  # 3 released distribution hatched
+  # 4 transfer distribution hatched
+  # 5 released distribution tagged hatched
+  # 6 transfer distribution tagged hatched
+
+  #initialized type to error
+  type = -1
+  cursor = database.cursor()
+  cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = '{d_id}';")
+  result = cursor.fetchall()
+  d = result[0][0]
+  d= str(d.year)+"-"+str(d.month)+"-"+str(d.day)
+  print(d)
+  if(len(result)==0):
+    type=0
+  else:
+    cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = {d_id};")
+    releasedResult = cursor.fetchall();
+    cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = {d_id};")
+    transferResult = cursor.fetchall();
+    if(len(releasedResult)==0&len(transferResult)!=0):
+      type=2
+      hatched = transferResult[0][2]
+    elif(len(releasedResult)!=0&len(transferResult)==0):
+      type=1
+      hatched = releasedResult[0][3]
+
+    if hatched is not None:
+      cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID={hatched};")
+      hatchedResult = cursor.fetchall()
+      cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID={hatched};")
+      taggedResult = cursor.fetchall()
+      if(type==1):
+        type=3
+      elif(type==2):
+        type=4
+      if(len(taggedResult)!=0 & type==4):
+        type=6
+      elif(len(taggedResult)!=0 & type==3):
+        type=5
+
+  if type!=-1:
+    print(result[0][0].strftime('%Y-%m-%d'))
+    print(result[0][1])
+    print(result[0][2])
+    print({result[0][4]})
+    cursor.execute("INSERT INTO DISTRIBUTION (Date, Count, Fname, S_ITIS) VALUES (%s,%s,%s,%s);",
+                   (result[0][0].strftime('%Y-%m-%d'), result[0][1], result[0][2], result[0][4]))
+    tkinter.messagebox.showinfo("Database Success", "Successfully duplicated distribution!")
+    #ask if we make this so it takes hatched, or not
+    database.commit()
+  else:
+    tkinter.messagebox.showwarning("Database Error", "Was not able to duplicate distribution")
+  return type
+
