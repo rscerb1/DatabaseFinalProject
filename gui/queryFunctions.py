@@ -1,4 +1,7 @@
+from datetime import datetime
+
 import mysql.connector
+import tkinter.messagebox
 
 # database = mysql.connector.connect(
 #   host="triton.towson.edu",
@@ -8,10 +11,10 @@ import mysql.connector
 #   port= '3360'
 # )
 
-database = mysql.connector.connect(
-  host="localhost",
+database=mysql.connector.connect(
   user="python",
-  password="12qwaszx",
+  password="123qweasdzxc",
+  host="localhost",
   database="dbproj"
 )
 
@@ -23,6 +26,62 @@ def selectListQuery(sql):
   list = cursor.fetchall()
   list = [i[0] for i in list]
   return list
+
+# Det distros
+def getDistros(filters):
+  sql = "SELECT * FROM DISTRIBUTION"
+  sqlFilters = ""
+  for i, param in enumerate(filters):
+    if(i == 0):
+      sqlFilters += ' WHERE '
+    else:
+      sqlFilters += ' AND '
+    # Date Filter
+    if(param[0] == 'Date'):
+      sqlFilters += f"YEAR(Date) LIKE '{param[1]}'"
+    # Region Filter
+    if(param[0] == 'regions'):
+      sqlFilters += f"Fname IN (SELECT Name FROM FACILITY WHERE R_Name = '{param[1]}')"
+    # Facility Name Filter
+    if(param[0] == 'facilities'):
+      sqlFilters += f"Fname = '{param[1]}'"
+    # taxonomic group filter
+    if(param[0] == 'taxGroups'):
+      sqlFilters += f"S_ITIS IN (SELECT ITIS_NUMBER FROM SPECIES WHERE taxonomic_group = '{param[1]}')"
+    # life stages filter (TODO: rn this only checks the released table.. needs to also check transfer)
+    if(param[0] == 'lifeStages'):
+      if(param[1] == 'Egg'):
+        sqlFilters += """(Distribution_ID NOT IN (SELECT Distribution_ID FROM RELEASED WHERE HID) 
+        AND Distribution_ID NOT IN (SELECT Distribution_ID FROM TRANSFER WHERE HID))"""
+      else:
+        sqlFilters += f"""((Distribution_ID IN (SELECT Distribution_ID FROM RELEASED WHERE HID IN (
+          SELECT HID FROM HATCHED_DISTRIBUTION WHERE life_stage = '{param[1]}'))) OR (Distribution_ID IN (SELECT Distribution_ID
+          FROM TRANSFER WHERE HID IN (SELECT HID FROM HATCHED_DISTRIBUTION WHERE life_stage = '{param[1]}'))))"""
+    # species filter
+    if(param[0] == 'species'):
+      sqlFilters += f"S_ITIS = (SELECT ITIS_NUMBER FROM SPECIES WHERE Name = '{param[1]}'"
+    
+  sql += sqlFilters + ';'
+  cursor = database.cursor()
+  cursor.execute(sql)
+  return cursor.fetchall()
+      
+    # TODO: test 'sqlFilters' with multiple selections then add it to 'sql, make sure to add ';' and stuff'
+
+# Distribution ID
+def getDistroID():
+  sql = "SELECT Distribution_ID FROM DISTRIBUTION"
+  return selectListQuery(sql)
+
+def getITIS():
+  sql = "SELECT ITIS_NUMBER FROM SPECIES"
+  return selectListQuery(sql)
+
+# Distribution ID
+def getSingleDistro(d_id):
+  cursor = database.cursor()
+  cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = {d_id}")
+  return cursor.fetchall()
 
 # Fiscal Years List
 def getYears():
@@ -67,28 +126,94 @@ def newDistro(date, count, facility, itis, hatched=False, life_stage='Egg', len=
   cursor = database.cursor()
   cursor.execute(sql)
   database.commit
-  
-# search distros
-def getDistros(curVals):
-  
-  vals = {
-      'Date' : '%',
-      'regions' : '%',
-      'facilities' : '%',
-      'taxGroups' : '%',
-      'lifeStages' : '%',
-      'species' : '%'
-  }
-  
-  for key in curVals:
-    if (curVals[key].get() != 'Any..'):
-      vals[key] = curVals[key].get()
-  
-  sql = (f"""SELECT * FROM DISTRIBUTION WHERE YEAR(Date) LIKE '{vals['Date']}' AND Fname LIKE '{vals['facilities']}'
-         AND S_ITIS IN (SELECT ITIS_NUMBER FROM SPECIES WHERE Name LIKE '{vals['species']}')""")
-  
+
+
+# get distribution
+def distroExists(d_id):
+  # -1 error
+  # 0 doesn't exist
+  # 1 released distribution
+  # 2 transfer distribution
+  # 3 released distribution hatched
+  # 4 transfer distribution hatched
+  # 5 released distribution tagged hatched
+  # 6 transfer distribution tagged hatched
+
+  #initialized type to error
+  type = -1
   cursor = database.cursor()
-  cursor.execute(sql)
-  list = cursor.fetchall()
-  print(list[0][1])
+  cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = '{d_id}';")
+  result = cursor.fetchall()
+
+  if(len(result)==0):
+    type=0
+  else:
+    cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = {d_id};")
+    releasedResult = cursor.fetchall()
+    cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = {d_id};")
+    transferResult = cursor.fetchall()
+    if(len(releasedResult)==0&len(transferResult)!=0):
+      type=2
+      hatched = transferResult[0][2]
+    elif(len(releasedResult)!=0&len(transferResult)==0):
+      type=1
+      hatched = releasedResult[0][3]
+
+    if hatched is not None:
+      cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID={hatched};")
+      hatchedResult = cursor.fetchall()
+      cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID={hatched};")
+      taggedResult = cursor.fetchall()
+      if(type==1):
+        type=3
+      elif(type==2):
+        type=4
+      if(len(taggedResult)!=0 & type==4):
+        type=6
+      elif(len(taggedResult)!=0 & type==3):
+        type=5
+
+  if type!=-1:
+    cursor.execute("INSERT INTO DISTRIBUTION (Date, Count, Fname, S_ITIS) VALUES (%s,%s,%s,%s);",
+                   (result[0][0].strftime('%Y-%m-%d'), result[0][1], result[0][2], result[0][4]))
+    tkinter.messagebox.showinfo("Database Success", "Successfully duplicated distribution!")
+    #ask if we make this so it takes hatched, or not
+    database.commit()
+  else:
+    tkinter.messagebox.showerror("Database Error", "Was not able to duplicate distribution")
+  return type
+
+def addSpecies(is_recreational, is_aquatic, ITIS, taxonomic_group, name):
+  try:
+    cursor = database.cursor()
+    cursor.execute("INSERT INTO SPECIES (is_recreational, is_aquatic, ITIS_NUMBER, taxonomic_group, Name) VALUES (%s,"
+                   "%s,%s,%s,%s);",(is_recreational, is_aquatic, ITIS, taxonomic_group, name))
+    database.commit()
+    tkinter.messagebox.showinfo("Database Success", "Successfully added species!")
+  except mysql.connector.Error as err:
+    tkinter.messagebox.showerror("Database Error", err)
+
+def deleteDistro(d_id):
+  try:
+    cursor = database.cursor()
+    cursor.execute(f"DELETE FROM DISTRIBUTION WHERE Distribution_ID = {d_id};")
+    database.commit()
+    tkinter.messagebox.showinfo("Database Success", f"Successfully deleted distribution ID {d_id}!")
+  except mysql.connector.Error as err:
+    tkinter.messagebox.showerror("Database Error", err)
+
+def editDistro(Date, Count, Fname, S_ITIS, d_id):
+  try:
+    print(Date)
+    print(Count)
+    print(Fname)
+    print(S_ITIS)
+    print(d_id)
+    cursor = database.cursor()
+    cursor.execute(f"UPDATE DISTRIBUTION SET Date = '{Date}', Count = {Count}, Fname = '{Fname}', S_ITIS={S_ITIS} "
+                   f"WHERE Distribution_ID = {d_id};")
+    database.commit()
+    tkinter.messagebox.showinfo("Database Success", f"Successfully updated distribution ID {d_id}!")
+  except mysql.connect.Error as err:
+    tkinter.messagebox.showerror("Database Error", err)
 

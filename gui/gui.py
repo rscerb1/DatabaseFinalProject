@@ -1,8 +1,13 @@
+from tkinter import Toplevel
+import tkinter.messagebox
+
+from tkcalendar import DateEntry
+
 import queryFunctions as qf
 
 try:
     import tkinter as tk
-    from tkinter import ttk
+    from tkinter import ttk, W
 except ImportError:
     import Tkinter as tk
     import ttk
@@ -25,7 +30,7 @@ class ManageWindows(tk.Tk):
 
         # make dict of all the frame classes
         self.frames = {}
-        for f in (MainMenu, CreateDistro, SearchDistros, SearchResults):
+        for f in (MainMenu, CreateDistro, SearchDistros, EditDistro, DuplicateDistro, DeleteDistro, AddSpecies):
             frame = f(container, self)
             self.frames[f] = frame
             frame.grid(row=0, column=0, sticky='nsew')
@@ -55,6 +60,22 @@ class MainMenu(Page):
         searchButton = tk.Button(self, text = 'Search Distribution Report', font = LARGE_FONT,
                             command = lambda: controller.show_frame(SearchDistros))
         searchButton.pack(padx=10, pady=10)
+
+        editButton = tk.Button(self, text='Edit Distribution', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(EditDistro))
+        editButton.pack(padx=10, pady=10)
+
+        duplicateButton = tk.Button(self, text='Duplicate Distribution', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(DuplicateDistro))
+        duplicateButton.pack(padx=10, pady=10)
+
+        deleteButton = tk.Button(self, text='Delete Distribution', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(DeleteDistro))
+        deleteButton.pack(padx=10, pady=10)
+
+        speciesButton = tk.Button(self, text='Add Species', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(AddSpecies))
+        speciesButton.pack(padx=10, pady=10)
 
 
 class CreateDistro(tk.Frame):
@@ -107,27 +128,6 @@ class CreateDistro(tk.Frame):
         cancelButton.grid(row=9,column=1, sticky='s')
         createButton.grid(row=9,column=4, sticky='s')
 
-class SearchResults(tk.Frame):
-    
-    distros = []
-    
-    def __init__(self, parent, controller):
-        tk.Frame.__init__(self,parent)
-        
-        titleLabel = tk.Label(self, text=f'{len(self.distros)} Results Found:', font=TITLE_FONT)
-        titleLabel.grid(row=0, column=3, pady=10)
-        
-        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
-                               command= lambda: controller.show_frame(MainMenu))
-        cancelButton.grid(row=9,column=1, sticky='s')
-    
-    def addDistro(self, r, c):
-        textbox = tk.Label(self, text=self.distros[0], font=TITLE_FONT)
-        textbox.grid(row=r, column=c)
-        
-    def setDistros(self, distros):
-        self.distros = distros
-
 class SearchDistros(tk.Frame):
     
     dbLists = {
@@ -156,7 +156,7 @@ class SearchDistros(tk.Frame):
         'lifeStages' : None,
         'species' : None
     }
-        
+    
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
         
@@ -196,14 +196,45 @@ class SearchDistros(tk.Frame):
                                command= lambda: self.resetLists())
         
         searchButton = tk.Button(self, text='Search', font=LARGE_FONT,
-                                command= lambda: qf.getDistros(self.currentValue))
+                                command= lambda: self.openResults())
         
         cancelButton.grid(row=7, column=1)
         clearButton.grid(row=7, column=2, columnspan=2)
         searchButton.grid(row=7, column=5, pady=5)
         
-    def 
+    def openResults(self):
+        resultWin = tk.Tk()
+        resultWin.columnconfigure(1, weight=1)
+        resultWin.columnconfigure(1, weight=1)
+        
+        results = []
+        results = self.getValues()
+        for disNum, distro in enumerate(results):
+            for i in range(0,5):
+                self.addDistro(resultWin, distro[i], disNum+9, i+1)
+        
+        titleLabel = tk.Label(resultWin, text=f'{len(results)} Result(s) Found', font=TITLE_FONT)
+        titleLabel.grid(row=1, column=1, pady=5, columnspan=5)
+        titleSep = ttk.Separator(resultWin, orient='horizontal')
+        titleSep.grid(row=2, column=1, columnspan=5, sticky=tk.EW)
+        for i, colTitle in enumerate(['Date', 'Count', 'Facility', 'ID', 'Species ITIS']):
+            label = tk.Label(resultWin, text=f'{colTitle}', font=LARGE_FONT)
+            label.grid(row=3, column=i+1, padx=10)
+        colSep = ttk.Separator(resultWin, orient='horizontal')
+        colSep.grid(row=8, column=1, columnspan=5, sticky=tk.EW)
+            
+    def addDistro(self, win, value, r, c):
+        label = tk.Label(win, text=f'{value}', font=LARGE_FONT)
+        label.grid(row=r, column=c, padx=10)
     
+    def getValues(self):
+        filters = []
+        for key in self.currentValue:
+            value = self.currentValue[key].get()
+            if(value != 'Any..'):
+                filters.append([key,value])
+        return qf.getDistros(filters)
+        
     def addOM(self, name, rowDD, label):
         newLabel = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
         self.currentValue[name] = tk.StringVar(self)
@@ -216,12 +247,6 @@ class SearchDistros(tk.Frame):
         for key in self.currentValue:
             if(key != 'lifeStage'):
                 self.currentValue[key].set('Any..')
-        
-    def getValues(self):
-        for key in self.currentValue:
-            value = self.currentValue[key].get()
-            if(value != 'Any..'):
-                print(f"{key} = {value}")
 
     def updateFaciliyList(self, *args):
         self.dbLists['facilities'] = qf.getFacilities(self.currentValue['regions'].get())
@@ -235,8 +260,187 @@ class SearchDistros(tk.Frame):
         for species in self.dbLists['species']:
             self.menus['species']['menu'].add_command(label=species, command=tk._setit(self, species))
         
+class EditDistro(tk.Frame):
+    dbLists = {
+        'facilities': [],
+        'ITIS': []
+    }
+
+    currentValue = {
+        'facilities': None,
+        'ITIS': None
+    }
+
+    menus = {
+        'facilities': None,
+        'ITIS': None
+    }
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self,parent)
+        titleLabel = tk.Label(self, text='Edit Distribution', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+
+        # Date
+        distroLabel = tk.Label(self, text='Distribution:', font=LARGE_FONT)
+        distroEntry = tk.Entry(self)
+
+        distroLabel.grid(row=1, column=1)
+        distroEntry.grid(row=1, column=3)
+
+        # Buttons
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+        getButton = tk.Button(self, text='Get', font=LARGE_FONT,
+                                 command=lambda: self.editDistro(distroEntry.get()))
+
+        cancelButton.grid(row=7, column=1, sticky='s')
+        getButton.grid(row=7, column=4, sticky='s')
+
+    def editDistro(self, d_id):
+        details = qf.getSingleDistro(d_id)
+        if len(details)==0:
+            tkinter.messagebox.showerror("Distribution Error", "No Distribution Match")
+        else:
+            # Create a Label
+            calLabel = tk.Label(self, text="Date:", font=LARGE_FONT)
+            # Create a Calendar using DateEntry
+            calEntry = DateEntry(self, width=16, background="grey", foreground="white", bd=2)
+            calEntry.set_date(details[0][0])
+            calLabel.grid(row=3, column=1)
+            calEntry.grid(row=3, column=3)
+
+            # count
+            countLabel = tk.Label(self, text='Count:', font=LARGE_FONT)
+            countEntry = tk.Entry(self)
+            countEntry.insert(0, details[0][1])
+
+            countLabel.grid(row=4, column=1)
+            countEntry.grid(row=4, column=3)
+
+            #facility name
+            self.dbLists['facilities'] = qf.getFacilities()
+            self.addOM('facilities', 5, 'Facility Name')
+            self.currentValue['facilities'].set(details[0][2])
+
+            self.dbLists['ITIS'] = qf.getITIS()
+            self.addOM('ITIS', 6, 'ITIS')
+            self.currentValue['ITIS'].set(details[0][4])
+
+            EditButton = tk.Button(self, text='Edit', font=LARGE_FONT,
+                                     command=lambda: qf.editDistro(calEntry.get_date(), countEntry.get(),
+                                                                   self.currentValue['facilities'].get(),
+                                                                   self.currentValue['ITIS'].get(), d_id))
+            EditButton.grid(row=7, column=3, sticky='s')
+
+    def addOM(self, name, rowDD, label):
+        newLabel = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
+        self.currentValue[name] = tk.StringVar(self)
+        self.currentValue[name].set('Any..')
+        self.menus[name] = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
+        newLabel.grid(row=rowDD, column=1)
+        self.menus[name].grid(row=rowDD, column=3, pady=5)
 
 
+class DuplicateDistro(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        titleLabel = tk.Label(self, text='Duplicate Distribution', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+
+        # Date
+        distroIDLabel = tk.Label(self, text='Distribution ID:', font=LARGE_FONT)
+        distroIDEntry = tk.Entry(self)
+
+        distroIDLabel.grid(row=1, column=1)
+        distroIDEntry.grid(row=1, column=3)
+
+        # Buttons
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+        createButton = tk.Button(self, text='Duplicate', font=LARGE_FONT,
+                                 command=lambda: qf.distroExists(distroIDEntry.get()))
+
+        cancelButton.grid(row=9, column=1, sticky='s')
+        createButton.grid(row=9, column=4, sticky='s')
+
+class DeleteDistro(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        titleLabel = tk.Label(self, text='Delete Distribution', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+
+        # Date
+        distroIDLabel = tk.Label(self, text='Distribution ID:', font=LARGE_FONT)
+        distroIDEntry = tk.Entry(self)
+
+        distroIDLabel.grid(row=1, column=1)
+        distroIDEntry.grid(row=1, column=3)
+
+        # Buttons
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+        createButton = tk.Button(self, text='Delete', font=LARGE_FONT,
+                                 command=lambda: self.confirm(distroIDEntry.get()))
+
+        cancelButton.grid(row=9, column=1, sticky='s')
+        createButton.grid(row=9, column=4, sticky='s')
+
+    def confirm(self, d_id):
+        check = tkinter.messagebox.askyesno("Delete Distribution", "Are you sure you want to delete this distribution?")
+        if check:
+            qf.deleteDistro(d_id)
+
+class AddSpecies(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        titleLabel = tk.Label(self, text='Add Species', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+
+        # Recreational
+        recBool = tk.IntVar()
+        recLabel = tk.Label(self, text='Recreational:', font=LARGE_FONT)
+        recEntry = tk.Checkbutton(self,variable=recBool, onvalue=1, offvalue=0)
+
+        recLabel.grid(row=1, column=1)
+        recEntry.grid(row=1, column=3)
+
+        # Aquatic
+        aquaBool = tk.IntVar()
+        aquaLabel = tk.Label(self, text='Aquatic:', font=LARGE_FONT)
+        aquaEntry = tk.Checkbutton(self,variable=aquaBool, onvalue=1, offvalue=0)
+
+        aquaLabel.grid(row=2, column=1)
+        aquaEntry.grid(row=2, column=3)
+
+        #ITIS NUMBER
+        ITISLabel = tk.Label(self, text='Itis Number:', font=LARGE_FONT)
+        ITISEntry = tk.Entry(self)
+
+        ITISLabel.grid(row=3, column=1)
+        ITISEntry.grid(row=3, column=3)
+        #Taxonomic Group
+        taxLabel = tk.Label(self, text='Taxonomic group:', font=LARGE_FONT)
+        taxEntry = tk.Entry(self)
+
+        taxLabel.grid(row=4,column=1)
+        taxEntry.grid(row=4,column=3)
+
+        # Name
+        nameLabel = tk.Label(self, text='Name:', font=LARGE_FONT)
+        nameEntry = tk.Entry(self)
+
+        nameLabel.grid(row=5, column=1)
+        nameEntry.grid(row=5, column=3)
+
+        # Buttons
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                                 command=lambda: controller.show_frame(MainMenu))
+
+        createButton = tk.Button(self, text='Add', font=LARGE_FONT,
+                                 command=lambda: qf.addSpecies(recBool.get(), aquaBool.get(), ITISEntry.get(),
+                                                               taxEntry.get(), nameEntry.get()))
+        cancelButton.grid(row=9, column=1, sticky='s')
+        createButton.grid(row=9, column=4, sticky='s')
 def main():
     app = ManageWindows()
     app.mainloop()
