@@ -28,6 +28,21 @@ def selectListQuery(sql):
   list = [i[0] for i in list]
   return list
 
+# Distribution ID
+def getDistroID():
+  sql = "SELECT Distribution_ID FROM DISTRIBUTION"
+  return selectListQuery(sql)
+
+def getITIS():
+  sql = "SELECT ITIS_NUMBER FROM SPECIES"
+  return selectListQuery(sql)
+
+# Distribution ID
+def getSingleDistro(d_id):
+  cursor = database.cursor()
+  cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = {d_id}")
+  return cursor.fetchall()
+
 # Fiscal Years List
 def getYears():
   sql = "SELECT DISTINCT YEAR(DATE) FROM DISTRIBUTION"
@@ -146,3 +161,19 @@ def deleteDistro(d_id):
     tkinter.messagebox.showinfo("Database Success", f"Successfully deleted distribution ID {d_id}!")
   except mysql.connector.Error as err:
     tkinter.messagebox.showerror("Database Error", err)
+
+def editDistro(Date, Count, Fname, S_ITIS, d_id):
+  try:
+    print(Date)
+    print(Count)
+    print(Fname)
+    print(S_ITIS)
+    print(d_id)
+    cursor = database.cursor()
+    cursor.execute(f"UPDATE DISTRIBUTION SET Date = '{Date}', Count = {Count}, Fname = '{Fname}', S_ITIS={S_ITIS} "
+                   f"WHERE Distribution_ID = {d_id};")
+    database.commit()
+    tkinter.messagebox.showinfo("Database Success", f"Successfully updated distribution ID {d_id}!")
+  except mysql.connect.Error as err:
+    tkinter.messagebox.showerror("Database Error", err)
+

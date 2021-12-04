@@ -1,5 +1,7 @@
 import tkinter.messagebox
 
+from tkcalendar import DateEntry
+
 import queryFunctions as qf
 
 try:
@@ -246,26 +248,84 @@ class SearchDistros(tk.Frame):
             self.menus['species']['menu'].add_command(label=species, command=tk._setit(self, species))
         
 class EditDistro(tk.Frame):
+    dbLists = {
+        'facilities': [],
+        'ITIS': []
+    }
+
+    currentValue = {
+        'facilities': None,
+        'ITIS': None
+    }
+
+    menus = {
+        'facilities': None,
+        'ITIS': None
+    }
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
         titleLabel = tk.Label(self, text='Edit Distribution', font=TITLE_FONT)
         titleLabel.grid(row=0, column=3, pady=10)
 
         # Date
-        dateLabel = tk.Label(self, text='Date:', font=LARGE_FONT)
-        dateEntry = tk.Entry(self)
+        distroLabel = tk.Label(self, text='Distribution:', font=LARGE_FONT)
+        distroEntry = tk.Entry(self)
 
-        dateLabel.grid(row=1, column=1)
-        dateEntry.grid(row=1, column=3)
+        distroLabel.grid(row=1, column=1)
+        distroEntry.grid(row=1, column=3)
 
         # Buttons
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                  command=lambda: controller.show_frame(MainMenu))
-        createButton = tk.Button(self, text='Create', font=LARGE_FONT,
-                                 command=lambda: controller.show_frame(MainMenu))
+        getButton = tk.Button(self, text='Get', font=LARGE_FONT,
+                                 command=lambda: self.editDistro(distroEntry.get()))
 
-        cancelButton.grid(row=9, column=1, sticky='s')
-        createButton.grid(row=9, column=4, sticky='s')
+        cancelButton.grid(row=7, column=1, sticky='s')
+        getButton.grid(row=7, column=4, sticky='s')
+
+    def editDistro(self, d_id):
+        details = qf.getSingleDistro(d_id)
+        if len(details)==0:
+            tkinter.messagebox.showerror("Distribution Error", "No Distribution Match")
+        else:
+            # Create a Label
+            calLabel = tk.Label(self, text="Date:", font=LARGE_FONT)
+            # Create a Calendar using DateEntry
+            calEntry = DateEntry(self, width=16, background="grey", foreground="white", bd=2)
+            calEntry.set_date(details[0][0])
+            calLabel.grid(row=3, column=1)
+            calEntry.grid(row=3, column=3)
+
+            # count
+            countLabel = tk.Label(self, text='Count:', font=LARGE_FONT)
+            countEntry = tk.Entry(self)
+            countEntry.insert(0, details[0][1])
+
+            countLabel.grid(row=4, column=1)
+            countEntry.grid(row=4, column=3)
+
+            #facility name
+            self.dbLists['facilities'] = qf.getFacilities()
+            self.addOM('facilities', 5, 'Facility Name')
+            self.currentValue['facilities'].set(details[0][2])
+
+            self.dbLists['ITIS'] = qf.getITIS()
+            self.addOM('ITIS', 6, 'ITIS')
+            self.currentValue['ITIS'].set(details[0][4])
+
+            EditButton = tk.Button(self, text='Edit', font=LARGE_FONT,
+                                     command=lambda: qf.editDistro(calEntry.get_date(), countEntry.get(),
+                                                                   self.currentValue['facilities'].get(),
+                                                                   self.currentValue['ITIS'].get(), d_id))
+            EditButton.grid(row=7, column=3, sticky='s')
+
+    def addOM(self, name, rowDD, label):
+        newLabel = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
+        self.currentValue[name] = tk.StringVar(self)
+        self.currentValue[name].set('Any..')
+        self.menus[name] = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
+        newLabel.grid(row=rowDD, column=1)
+        self.menus[name].grid(row=rowDD, column=3, pady=5)
 
 
 class DuplicateDistro(tk.Frame):
