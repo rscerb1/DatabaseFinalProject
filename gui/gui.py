@@ -25,7 +25,7 @@ class ManageWindows(tk.Tk):
 
         # make dict of all the frame classes
         self.frames = {}
-        for f in (MainMenu, CreateDistro, SearchDistros):
+        for f in (MainMenu, CreateDistro, SearchDistros, SearchResults):
             frame = f(container, self)
             self.frames[f] = frame
             frame.grid(row=0, column=0, sticky='nsew')
@@ -107,20 +107,26 @@ class CreateDistro(tk.Frame):
         cancelButton.grid(row=9,column=1, sticky='s')
         createButton.grid(row=9,column=4, sticky='s')
 
-# class SearchResults(tk.Frame):
+class SearchResults(tk.Frame):
     
-#     distros = []
+    distros = []
     
-#     def __init__(self, parent, controller):
-#         tk.Frame.__init__(self,parent)
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self,parent)
         
+        titleLabel = tk.Label(self, text=f'{len(self.distros)} Results Found:', font=TITLE_FONT)
+        titleLabel.grid(row=0, column=3, pady=10)
+        
+        cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
+                               command= lambda: controller.show_frame(MainMenu))
+        cancelButton.grid(row=9,column=1, sticky='s')
     
-#     def addDistro(ID, Date, Facility, Count, Species):
-            
+    def addDistro(self, r, c):
+        textbox = tk.Label(self, text=self.distros[0], font=TITLE_FONT)
+        textbox.grid(row=r, column=c)
         
-#     def setDistros():
-        
-        
+    def setDistros(self, distros):
+        self.distros = distros
 
 class SearchDistros(tk.Frame):
     
@@ -164,7 +170,7 @@ class SearchDistros(tk.Frame):
         # Region Names
         self.dbLists['regions'] = qf.getRegions()
         self.addOM('regions', 2, 'Region')
-        self.currentValue['regions'].trace_variable('w', self.updateFaciliyList)
+        # self.currentValue['regions'].trace_variable('w', self.updateFaciliyList)
         
         # Facility Names
         self.dbLists['facilities'] = qf.getFacilities()
@@ -176,7 +182,7 @@ class SearchDistros(tk.Frame):
         # Taxonomic Groups
         self.dbLists['taxGroups'] = qf.getTaxGroups()
         self.addOM('taxGroups', 5, 'Taxonomic Group')
-        self.currentValue['taxGroups'].trace_variable('w', self.updateSpeciesList)
+        # self.currentValue['taxGroups'].trace_variable('w', self.updateSpeciesList)
 
         # Species 
         self.dbLists['species'] = qf.getSpecies()
@@ -190,11 +196,13 @@ class SearchDistros(tk.Frame):
                                command= lambda: self.resetLists())
         
         searchButton = tk.Button(self, text='Search', font=LARGE_FONT,
-                                command= lambda: self.getValues())
+                                command= lambda: qf.getDistros(self.currentValue))
         
         cancelButton.grid(row=7, column=1)
         clearButton.grid(row=7, column=2, columnspan=2)
         searchButton.grid(row=7, column=5, pady=5)
+        
+    def 
     
     def addOM(self, name, rowDD, label):
         newLabel = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
@@ -227,6 +235,7 @@ class SearchDistros(tk.Frame):
         for species in self.dbLists['species']:
             self.menus['species']['menu'].add_command(label=species, command=tk._setit(self, species))
         
+
 
 def main():
     app = ManageWindows()

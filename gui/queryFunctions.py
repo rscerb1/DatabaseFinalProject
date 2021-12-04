@@ -67,3 +67,28 @@ def newDistro(date, count, facility, itis, hatched=False, life_stage='Egg', len=
   cursor = database.cursor()
   cursor.execute(sql)
   database.commit
+  
+# search distros
+def getDistros(curVals):
+  
+  vals = {
+      'Date' : '%',
+      'regions' : '%',
+      'facilities' : '%',
+      'taxGroups' : '%',
+      'lifeStages' : '%',
+      'species' : '%'
+  }
+  
+  for key in curVals:
+    if (curVals[key].get() != 'Any..'):
+      vals[key] = curVals[key].get()
+  
+  sql = (f"""SELECT * FROM DISTRIBUTION WHERE YEAR(Date) LIKE '{vals['Date']}' AND Fname LIKE '{vals['facilities']}'
+         AND S_ITIS IN (SELECT ITIS_NUMBER FROM SPECIES WHERE Name LIKE '{vals['species']}')""")
+  
+  cursor = database.cursor()
+  cursor.execute(sql)
+  list = cursor.fetchall()
+  print(list[0][1])
+
