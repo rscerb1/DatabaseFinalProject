@@ -1,5 +1,7 @@
-from tkinter import Toplevel
-import tkinter.messagebox
+from datetime import datetime
+from tkinter import filedialog as fd
+import tkinter.messagebox, csv, os.path
+
 
 from tkcalendar import DateEntry
 
@@ -130,6 +132,7 @@ class CreateDistro(tk.Frame):
 
 class SearchDistros(tk.Frame):
     
+    results = []
     dbLists = {
         'Date' : [],
         'regions' : [],
@@ -137,8 +140,7 @@ class SearchDistros(tk.Frame):
         'taxGroups' : [],
         'lifeStages' : ['Egg', 'Juvenile', 'Adult'],
         'species' : []
-    }
-    
+    } 
     currentValue = {
         'Date' : None,
         'regions' : None,
@@ -147,7 +149,6 @@ class SearchDistros(tk.Frame):
         'lifeStages' : None,
         'species' : None
     }
-    
     menus = {
         'Date' : None,
         'regions' : None,
@@ -207,13 +208,12 @@ class SearchDistros(tk.Frame):
         resultWin.columnconfigure(1, weight=1)
         resultWin.columnconfigure(1, weight=1)
         
-        results = []
-        results = self.getValues()
-        for disNum, distro in enumerate(results):
+        self.results = self.getValues()
+        for disNum, distro in enumerate(self.results):
             for i in range(0,5):
                 self.addDistro(resultWin, distro[i], disNum+9, i+1)
         
-        titleLabel = tk.Label(resultWin, text=f'{len(results)} Result(s) Found', font=TITLE_FONT)
+        titleLabel = tk.Label(resultWin, text=f'{len(self.results)} Result(s) Found', font=TITLE_FONT)
         titleLabel.grid(row=1, column=1, pady=5, columnspan=5)
         titleSep = ttk.Separator(resultWin, orient='horizontal')
         titleSep.grid(row=2, column=1, columnspan=5, sticky=tk.EW)
@@ -222,7 +222,29 @@ class SearchDistros(tk.Frame):
             label.grid(row=3, column=i+1, padx=10)
         colSep = ttk.Separator(resultWin, orient='horizontal')
         colSep.grid(row=8, column=1, columnspan=5, sticky=tk.EW)
+        
+        exportButton = tk.Button(resultWin, text='Export to CSV', font=LARGE_FONT,
+                           command= lambda: self.export())
+        exportButton.grid(row=100, column=3, sticky=tk.S)
             
+    def export(self):
+        # get file path
+        dir = fd.askdirectory()
+        file = '/Distro-Report'
+        # handle duplicate files
+        count = 1
+        while(os.path.exists(dir + file + '.csv')):
+            file = f'/Distro-Report({count})'
+            count += 1
+        # write csv
+        with open(dir+file+'.csv', 'w', newline='') as csvfile:
+            distroWriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+            distroWriter.writerow(['Date', 'Count', 'Facility', 'Distribution ID', 'Species ITIS'])
+            for distro in self.results:
+                distroWriter.writerow(distro)
+            # alter user of created file
+            tkinter.messagebox.showinfo(title='Distrobution Exporter', message=f'File Created:\n{dir}{file}.csv')
+    
     def addDistro(self, win, value, r, c):
         label = tk.Label(win, text=f'{value}', font=LARGE_FONT)
         label.grid(row=r, column=c, padx=10)

@@ -59,9 +59,10 @@ def getDistros(filters):
           FROM TRANSFER WHERE HID IN (SELECT HID FROM HATCHED_DISTRIBUTION WHERE life_stage = '{param[1]}'))))"""
     # species filter
     if(param[0] == 'species'):
-      sqlFilters += f"S_ITIS = (SELECT ITIS_NUMBER FROM SPECIES WHERE Name = '{param[1]}'"
+      sqlFilters += f"S_ITIS = (SELECT ITIS_NUMBER FROM SPECIES WHERE Name = '{param[1]}')"
     
   sql += sqlFilters + ';'
+  print(sql)
   cursor = database.cursor()
   cursor.execute(sql)
   return cursor.fetchall()
