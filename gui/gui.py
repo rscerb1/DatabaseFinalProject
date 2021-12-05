@@ -82,44 +82,88 @@ class MainMenu(Page):
 
 class CreateDistro(tk.Frame):
     
+    menus = {
+        'Date' : None,
+        'regions' : None,
+        'facilities' : None,
+        'taxGroups' : None,
+        'lifeStages' : None,
+        'species' : None,
+        'rec' : None,
+        'type' : None
+    }
+    
+    currentValue = {
+        'Date' : None,
+        'regions' : None,
+        'facilities' : None,
+        'taxGroups' : None,
+        'lifeStages' : None,
+        'species' : None,
+        'rec' : None,
+        'type' : None
+    }
+    
+    dbLists = {
+        'Date' : [],
+        'regions' : [],
+        'facilities' : [],
+        'taxGroups' : [],
+        'lifeStages' : ['Egg', 'Juvenile', 'Adult'],
+        'species' : [],
+        'type' : ['Transfer', 'Release']
+    } 
+    
     regionsFromDB = ['']
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
         
         titleLabel = tk.Label(self, text='Create New Distribution', font=TITLE_FONT)
-        titleLabel.grid(row=0, column=3, pady=10)
-
-        # Date
-        dateLabel = tk.Label(self, text='Date:', font=LARGE_FONT)
-        dateEntry = tk.Entry(self)
-        
-        dateLabel.grid(row=1, column=1)
-        dateEntry.grid(row=1, column=3)
+        titleLabel.grid(row=0, column=1, pady=10, columnspan=3)
         
         # Count
         countLabel = tk.Label(self, text='Count:', font=LARGE_FONT)
         countEntry = tk.Entry(self)
+        countLabel.grid(row=1, column=1)
+        countEntry.grid(row=1, column=2)
         
-        countLabel.grid(row=2, column=1)
-        countEntry.grid(row=2, column=3)
+        # Date
+        calLabel = tk.Label(self, text="Date:", font=LARGE_FONT)
+        calEntry = DateEntry(self, width=16, background="grey", foreground="white", bd=2)
+        calEntry.set_date(datetime.now())
+        calLabel.grid(row=2, column=1)
+        calEntry.grid(row=2, column=2)
         
-        # ITIS
-        ITISLabel = tk.Label(self, text='Species ITIS:', font=LARGE_FONT)
-        ITISEntry = tk.Entry(self)
+        # Region Names
+        self.dbLists['regions'] = qf.getRegions()
+        self.addOM('regions', 3, 'Region')
+        # self.currentValue['regions'].trace_variable('w', self.updateFaciliyList)
         
-        ITISLabel.grid(row=3, column=1)
-        ITISEntry.grid(row=3, column=3)
+        # Facility Names
+        self.dbLists['facilities'] = qf.getFacilities()
+        self.addOM('facilities', 4, 'Facility Name')
         
-        # Region
-        regionLabel = tk.Label(self, text='Facility Region:', font=LARGE_FONT)
-        regionList = tk.StringVar(self)
-        regionList.set('Select...')
-        regionMenu = tk.OptionMenu(self, regionList, *self.regionsFromDB)
-        regionMenu.config(width=15)
+        # Life Stages
+        self.addOM('lifeStages', 5, 'Life Stage')
         
-        regionLabel.grid(row=4, column=1)
-        regionMenu.grid(row=4, column=3)
+        # Taxonomic Groups
+        self.dbLists['taxGroups'] = qf.getTaxGroups()
+        self.addOM('taxGroups', 6, 'Taxonomic Group')
+        # self.currentValue['taxGroups'].trace_variable('w', self.updateSpeciesList)
+
+        # Species 
+        self.dbLists['species'] = qf.getSpecies()
+        self.addOM('species', 7, 'Species')
+        
+        # Life Stages
+        self.addOM('type', 8, 'Distribution Type')
+        
+        rec = None
+        recLabel = tk.Label(self, text='Recreational:',font=LARGE_FONT)
+        recLabel.grid(row=9, column=1, columnspan=2)
+        recButton = tk.Checkbutton(self,variable=rec, onvalue=1, offvalue=0)
+        recButton.grid(row=9, column=2)
         
         # Buttons
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
@@ -127,8 +171,17 @@ class CreateDistro(tk.Frame):
         createButton = tk.Button(self, text='Create', font=LARGE_FONT,
                                 command= lambda: controller.show_frame(MainMenu))
                 
-        cancelButton.grid(row=9,column=1, sticky='s')
-        createButton.grid(row=9,column=4, sticky='s')
+        cancelButton.grid(row=20,column=1)
+        createButton.grid(row=20,column=3)
+    
+    def addOM(self, name, rowDD, label):
+        newLabel = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
+        self.currentValue[name] = tk.StringVar(self)
+        self.currentValue[name].set('Select..')
+        self.menus[name] = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
+        newLabel.grid(row=rowDD, column=1)
+        self.menus[name].grid(row=rowDD, column=2, pady=5)
+        self.menus[name].config(width = 14)
 
 class SearchDistros(tk.Frame):
     
