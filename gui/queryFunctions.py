@@ -62,13 +62,13 @@ def getDistros(filters):
     # species filter
     if(param[0] == 'species'):
       sqlFilters += f"S_ITIS = (SELECT ITIS_NUMBER FROM SPECIES WHERE Name = '{param[1]}')"
-    
+
   sql += sqlFilters + ';'
   print(sql)
   cursor = database.cursor()
   cursor.execute(sql)
   return cursor.fetchall()
-      
+
     # TODO: test 'sqlFilters' with multiple selections then add it to 'sql, make sure to add ';' and stuff'
 
 # Distribution ID
@@ -77,52 +77,61 @@ def getDistroID():
   return selectListQuery(sql)
 
 def getITIS():
+  """Get the ITIS from species table"""
   sql = "SELECT ITIS_NUMBER FROM SPECIES"
   return selectListQuery(sql)
 
 def getReleased(d_id):
+  """Get the released distributions"""
   cursor = database.cursor()
   cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = %s;", (d_id, ))
   return cursor.fetchall()
 
 def getTransfer(d_id):
+  """Get the transfer distributions"""
   cursor = database.cursor()
   cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = %s;", (d_id, ))
   return cursor.fetchall()
 
 
 def getHatch(h_id):
+  """Get the hatched distributions"""
   cursor = database.cursor()
   cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID = %s;", (h_id, ))
   return cursor.fetchall()
 
 def getTagged(h_id):
+  """Get the tagged distributions"""
   cursor = database.cursor()
   cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID = %s;", (h_id, ))
   return cursor.fetchall()
 
 # Distribution ID
 def getSingleDistro(d_id):
+  """Get a single distribution based of the ID"""
   cursor = database.cursor()
   cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = %s;", (d_id, ))
   return cursor.fetchall()
 
 # Fiscal Years List
 def getYears():
+  """Get the fiscal years"""
   sql = "SELECT DISTINCT YEAR(DATE) FROM DISTRIBUTION"
   dates = selectListQuery(sql)
   years = []
   for x in dates:
     years.append(x)
   return years
-  
+
 # Region Names List
 def getRegions():
+  """Get the regions from Region table"""
   sql = "SELECT Name FROM REGION"
   return selectListQuery(sql)
 
 # Facility Names List
 def getFacilities(region = None):
+  """Get the Facilities Name"""
   '''SQL INJECTION CAN HAPPEN HERE'''
   sql = f"SELECT NAME FROM FACILITY WHERE R_Name = '{region}';"
   if(region == None):
@@ -131,11 +140,13 @@ def getFacilities(region = None):
 
 # Taxonomic Groups list
 def getTaxGroups():
+  """Get the taxonomic_group from Species"""
   sql = f"SELECT DISTINCT taxonomic_group FROM SPECIES;"
   return selectListQuery(sql)
 
 # Species List
 def getSpecies(taxGroup = None):
+  """Get the species names from table Species"""
   '''SQL INJECTION CAN HAPPEN HERE'''
   sql = f"SELECT Name FROM SPECIES WHERE taxonomic_group = '{taxGroup}'"
   if(taxGroup == None):
@@ -145,6 +156,7 @@ def getSpecies(taxGroup = None):
 
 # insert new distro
 def newDistro(date, count, facility, itis, hatched=False, life_stage='Egg', len=None, weight=None):
+  """Insert a new distribution"""
   '''SQL INJECTION CAN HAPPEN HERE'''
   sql = f"INSERT INTO DISTRIBUTION (Date, Count, Fname, S_ITIS) VALUES ('{date}', {count}, '{facility}', {itis});"
   if(hatched):
@@ -157,6 +169,7 @@ def newDistro(date, count, facility, itis, hatched=False, life_stage='Egg', len=
 
 # get distribution
 def duplicateDistro(d_id):
+  """Duplicate a distribution"""
   # -1 error
   # 1 released distribution
   # 2 transfer distribution
@@ -227,6 +240,7 @@ def duplicateDistro(d_id):
   return type
 
 def addSpecies(is_recreational, is_aquatic, ITIS, taxonomic_group, name):
+  """Add a species"""
   try:
     cursor = database.cursor()
     cursor.execute("INSERT INTO SPECIES (is_recreational, is_aquatic, ITIS_NUMBER, taxonomic_group, Name) VALUES (%s,"
@@ -237,6 +251,7 @@ def addSpecies(is_recreational, is_aquatic, ITIS, taxonomic_group, name):
     tkinter.messagebox.showerror("Database Error", err)
 
 def deleteDistro(d_id):
+  """Delete a distribution"""
   isReleased = False
   isTransfer = False
   isHatched = False
@@ -285,6 +300,7 @@ def deleteDistro(d_id):
     tkinter.messagebox.showerror("Database Error", f"Distribution {d_id} does not exist in the database")
 
 def editDistro(distroVals, subVals, d_id):
+  """Edit a distribution"""
   try:
     cursor = database.cursor()
     cursor.execute("UPDATE DISTRIBUTION SET Date = %s, Count = %s, Fname = %s, S_ITIS=%s "
@@ -311,6 +327,9 @@ def editDistro(distroVals, subVals, d_id):
     tkinter.messagebox.showerror("Database Error", err)
 
 def isReleased(d_id):
+  """Check to see if a distribution is a released distribution.
+  We do not need to check if it is a transfer distribution because if this function is false, we will know that
+  it is a transfer distribution"""
   cursor = database.cursor()
   cursor.execute("SELECT * FROM RELEASED WHERE Distribution_ID = %s;", (d_id, ))
   result = cursor.fetchall()

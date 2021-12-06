@@ -51,7 +51,10 @@ class Page(tk.Frame):
         self.lift()
 
 class MainMenu(Page):
-    
+    """This is the main menu page.
+    This provides the user options to Create, Search, Edit, Duplicate or Delete a Distribution
+    And to add a species.
+    """
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
 
@@ -82,7 +85,7 @@ class MainMenu(Page):
 
 
 class CreateDistro(tk.Frame):
-    
+    """This frame is for creating a distribution"""
     menus = {
         'Date' : None,
         'regions' : None,
@@ -185,7 +188,7 @@ class CreateDistro(tk.Frame):
         self.menus[name].config(width = 14)
 
 class SearchDistros(tk.Frame):
-    
+    """This frame is for searching a distribution"""
     results = []
     dbLists = {
         'Date' : [],
@@ -337,6 +340,11 @@ class SearchDistros(tk.Frame):
             self.menus['species']['menu'].add_command(label=species, command=tk._setit(self, species))
         
 class EditDistro(tk.Frame):
+    """This frame is for editing a distribution
+    The class variables will hold the returned database lists (for drop down diagrams),
+    the current values of variables,
+    the labels and entries of certain variables,
+    and the values that are turned over to the queryFunctions class"""
     dbLists = {
         'facilities': [],
         'ITIS': [],
@@ -401,7 +409,7 @@ class EditDistro(tk.Frame):
         titleLabel = tk.Label(self, text='Edit Distribution', font=TITLE_FONT)
         titleLabel.grid(row=0, column=3, pady=10)
 
-        # Date
+        # Distibution Lable
         distroLabel = tk.Label(self, text='Distribution:', font=LARGE_FONT)
         distroEntry = tk.Entry(self)
 
@@ -418,6 +426,8 @@ class EditDistro(tk.Frame):
         getButton.grid(row=20, column=4, sticky='s')
 
     def emptyFrame(self):
+        """This function sets all of the labels and entries to none
+        This way we can get a blank page and build it from the ground up"""
         for i in self.labels:
             if self.labels[i] is not None:
                 self.labels[i].destroy()
@@ -430,11 +440,13 @@ class EditDistro(tk.Frame):
                 self.entries[i] = None
 
     def editDistro(self, d_id):
+        """This function builds the frame labels and entries for a specific distribution id.
+        This will let the user fill out their specified values and edit the distribution"""
         details = qf.getSingleDistro(d_id)
         if len(details)==0:
             tkinter.messagebox.showerror("Distribution Error", "No Distribution Match")
         else:
-            # Create a Label
+            # Create a Label for Calendar
             self.labels['calendar'] = tk.Label(self, text="Date:", font=LARGE_FONT)
             # Create a Calendar using DateEntry
             self.entries['calendar'] = DateEntry(self, width=16, background="grey", foreground="white", bd=2)
@@ -442,7 +454,7 @@ class EditDistro(tk.Frame):
             self.labels['calendar'].grid(row=3, column=1)
             self.entries['calendar'].grid(row=3, column=3)
 
-            # count
+            # Creates the count
             self.labels['count'] = tk.Label(self, text='Count:', font=LARGE_FONT)
             self.entries['count'] = tk.Entry(self)
             self.entries['count'].insert(0, details[0][1])
@@ -455,11 +467,12 @@ class EditDistro(tk.Frame):
             self.addOM('facilities', 5, 'Facility Name')
             self.currentValue['facilities'].set(details[0][2])
 
+            #ITIS
             self.dbLists['ITIS'] = qf.getITIS()
             self.addOM('ITIS', 6, 'ITIS')
             self.currentValue['ITIS'].set(details[0][4])
 
-
+            #Checks to see if the distribution is released
             if(qf.isReleased(d_id)):
                 releasedResult = qf.getReleased(d_id)
                 self.labels['latitude'] = tk.Label(self, text='Latitude:', font=LARGE_FONT)
@@ -480,7 +493,7 @@ class EditDistro(tk.Frame):
                 if releasedResult[0][3] is not None:
                     self.hatch(releasedResult[0][3])
             else:
-                # facility name
+                # if not released, it has to be transfer
                 transferResult = qf.getTransfer(d_id)
                 self.dbLists['transferFacility'] = qf.getFacilities()
                 self.addOM('transferFacility', 7, 'Transfer Facility')
@@ -494,11 +507,14 @@ class EditDistro(tk.Frame):
             EditButton.grid(row=20, column=3, sticky='s')
 
     def clearVals(self):
+        """This function sets all of the values to None,
+        that way we will not have a mixmatch error with previous values"""
         for i in self.distroVals:
             self.distroVals[i] = None
         for i in self.subVals:
             self.subVals[i] = None
     def getValues(self):
+        """This function will get all of the values of the not none variables to send to queryFunctions"""
         self.distroVals['calendar'] = self.entries['calendar'].get_date()
         self.distroVals['count']= self.entries['count'].get()
         self.distroVals['facilities'] = self.currentValue['facilities'].get()
@@ -517,8 +533,8 @@ class EditDistro(tk.Frame):
             print(self.subVals[i])
 
     def hatch(self, h_id):
+        """This function posts onto the frame if the distribution id is a hatched distribution"""
         hatchResult = qf.getHatch(h_id)
-        print(hatchResult)
         self.labels['length'] = tk.Label(self, text='Average Length:', font=LARGE_FONT)
         self.entries['length'] = tk.Entry(self)
         self.entries['length'].insert(0, hatchResult[0][0])
@@ -545,6 +561,7 @@ class EditDistro(tk.Frame):
 
 
     def addOM(self, name, rowDD, label):
+        """This function will set up the drop down menus"""
         self.labels[name] = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
         self.currentValue[name] = tk.StringVar(self)
         self.currentValue[name].set('Any..')
@@ -554,6 +571,7 @@ class EditDistro(tk.Frame):
 
 
 class DuplicateDistro(tk.Frame):
+    """This class is meant to show a frame to ask to duplicate the distribution"""
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         titleLabel = tk.Label(self, text='Duplicate Distribution', font=TITLE_FONT)
@@ -576,12 +594,13 @@ class DuplicateDistro(tk.Frame):
         createButton.grid(row=9, column=4, sticky='s')
 
 class DeleteDistro(tk.Frame):
+    """This class shows a frame to delete a distribution based off of it's ID"""
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         titleLabel = tk.Label(self, text='Delete Distribution', font=TITLE_FONT)
         titleLabel.grid(row=0, column=3, pady=10)
 
-        # Date
+        # Distribution ID
         distroIDLabel = tk.Label(self, text='Distribution ID:', font=LARGE_FONT)
         distroIDEntry = tk.Entry(self)
 
@@ -598,11 +617,13 @@ class DeleteDistro(tk.Frame):
         deleteButton.grid(row=9, column=4, sticky='s')
 
     def confirm(self, d_id):
+        """Confirms if we want to delete a distribution"""
         check = tkinter.messagebox.askyesno("Delete Distribution", "Are you sure you want to delete this distribution?")
         if check:
             qf.deleteDistro(d_id)
 
 class AddSpecies(tk.Frame):
+    """This will add a species to the Species table based off of a the frames current inputs"""
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         titleLabel = tk.Label(self, text='Add Species', font=TITLE_FONT)
