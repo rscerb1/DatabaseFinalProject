@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, time
+from time import sleep
 from tkinter import filedialog as fd
 import tkinter.messagebox, csv, os.path
 
@@ -285,17 +286,62 @@ class SearchDistros(tk.Frame):
 class EditDistro(tk.Frame):
     dbLists = {
         'facilities': [],
-        'ITIS': []
+        'ITIS': [],
+        'transferFacility': []
     }
 
     currentValue = {
+        'calendar': None,
+        'count': None,
+        'facilities': None,
+        'ITIS': None,
+        'latitude': None,
+        'longitude': None,
+        'length': None,
+        'weight': None,
+        'tagged': None,
+        'transferFacility': None
+    }
+
+    labels = {
+        'calendar': None,
+        'count': None,
+        'facilities': None,
+        'ITIS': None,
+        'latitude': None,
+        'longitude': None,
+        'length': None,
+        'weight': None,
+        'tagged': None,
+        'transferFacility': None
+    }
+    entries = {
+        'calendar': None,
+        'count': None,
+        'facilities': None,
+        'ITIS': None,
+        'latitude': None,
+        'longitude': None,
+        'length': None,
+        'weight': None,
+        'tagged': None,
+        'transferFacility': None
+    }
+
+    distroVals = {
+        'calendar': None,
+        'count': None,
         'facilities': None,
         'ITIS': None
     }
 
-    menus = {
-        'facilities': None,
-        'ITIS': None
+    subVals = {
+        'latitude': None,
+        'longitude': None,
+        'length': None,
+        'weight': None,
+        'tagged': None,
+        'transferFacility': None
     }
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
@@ -313,10 +359,23 @@ class EditDistro(tk.Frame):
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                  command=lambda: controller.show_frame(MainMenu))
         getButton = tk.Button(self, text='Get', font=LARGE_FONT,
-                                 command=lambda: self.editDistro(distroEntry.get()))
+                                 command=lambda: [self.emptyFrame(), self.editDistro(distroEntry.get())])
 
-        cancelButton.grid(row=7, column=1, sticky='s')
-        getButton.grid(row=7, column=4, sticky='s')
+        cancelButton.grid(row=20, column=1, sticky='s')
+        getButton.grid(row=20, column=4, sticky='s')
+
+    def emptyFrame(self):
+        print("test")
+        for i in self.labels:
+            if self.labels[i] is not None:
+                self.labels[i].destroy()
+                self.labels[i] = None
+        for i in self.currentValue:
+            self.currentValue[i] = None
+        for i in self.entries:
+            if self.entries[i] is not None:
+                self.entries[i].destroy()
+                self.entries[i] = None
 
     def editDistro(self, d_id):
         details = qf.getSingleDistro(d_id)
@@ -324,20 +383,20 @@ class EditDistro(tk.Frame):
             tkinter.messagebox.showerror("Distribution Error", "No Distribution Match")
         else:
             # Create a Label
-            calLabel = tk.Label(self, text="Date:", font=LARGE_FONT)
+            self.labels['calendar'] = tk.Label(self, text="Date:", font=LARGE_FONT)
             # Create a Calendar using DateEntry
-            calEntry = DateEntry(self, width=16, background="grey", foreground="white", bd=2)
-            calEntry.set_date(details[0][0])
-            calLabel.grid(row=3, column=1)
-            calEntry.grid(row=3, column=3)
+            self.entries['calendar'] = DateEntry(self, width=16, background="grey", foreground="white", bd=2)
+            self.entries['calendar'].set_date(details[0][0])
+            self.labels['calendar'].grid(row=3, column=1)
+            self.entries['calendar'].grid(row=3, column=3)
 
             # count
-            countLabel = tk.Label(self, text='Count:', font=LARGE_FONT)
-            countEntry = tk.Entry(self)
-            countEntry.insert(0, details[0][1])
+            self.labels['count'] = tk.Label(self, text='Count:', font=LARGE_FONT)
+            self.entries['count'] = tk.Entry(self)
+            self.entries['count'].insert(0, details[0][1])
 
-            countLabel.grid(row=4, column=1)
-            countEntry.grid(row=4, column=3)
+            self.labels['count'].grid(row=4, column=1)
+            self.entries['count'].grid(row=4, column=3)
 
             #facility name
             self.dbLists['facilities'] = qf.getFacilities()
@@ -348,19 +407,98 @@ class EditDistro(tk.Frame):
             self.addOM('ITIS', 6, 'ITIS')
             self.currentValue['ITIS'].set(details[0][4])
 
+
+            if(qf.isReleased(d_id)):
+                releasedResult = qf.getReleased(d_id)
+                self.labels['latitude'] = tk.Label(self, text='Latitude:', font=LARGE_FONT)
+                self.entries['latitude'] = tk.Entry(self)
+                self.entries['latitude'].insert(0, releasedResult[0][1])
+
+                self.labels['latitude'].grid(row=7, column=1)
+                self.entries['latitude'].grid(row=7, column=3)
+
+
+                self.labels['longitude'] = tk.Label(self, text='Longitude:', font=LARGE_FONT)
+                self.entries['longitude'] = tk.Entry(self)
+                self.entries['longitude'].insert(0, releasedResult[0][2])
+
+
+                self.labels['longitude'].grid(row=8, column=1)
+                self.entries['longitude'].grid(row=8, column=3)
+                if releasedResult[0][3] is not None:
+                    self.hatch(releasedResult[0][3])
+            else:
+                # facility name
+                transferResult = qf.getTransfer(d_id)
+                self.dbLists['transferFacility'] = qf.getFacilities()
+                self.addOM('transferFacility', 7, 'Transfer Facility')
+                self.currentValue['transferFacility'].set(transferResult[0][1])
+                if transferResult[0][2] is not None:
+                    self.hatch(transferResult[0][2])
+
             EditButton = tk.Button(self, text='Edit', font=LARGE_FONT,
-                                     command=lambda: qf.editDistro(calEntry.get_date(), countEntry.get(),
-                                                                   self.currentValue['facilities'].get(),
-                                                                   self.currentValue['ITIS'].get(), d_id))
-            EditButton.grid(row=7, column=3, sticky='s')
+                                     command=lambda: [self.getValues(), qf.editDistro(self.distroVals, self.subVals,
+                                                                                      d_id), self.clearVals()])
+            EditButton.grid(row=20, column=3, sticky='s')
+
+    def clearVals(self):
+        for i in self.distroVals:
+            self.distroVals[i] = None
+        for i in self.subVals:
+            self.subVals[i] = None
+    def getValues(self):
+        self.distroVals['calendar'] = self.entries['calendar'].get_date()
+        self.distroVals['count']= self.entries['count'].get()
+        self.distroVals['facilities'] = self.currentValue['facilities'].get()
+        self.distroVals['ITIS'] = self.currentValue['ITIS'].get()
+
+        for i in self.subVals:
+            if self.entries[i] is not None:
+                if i=='transferFacility':
+                    self.subVals[i] = self.currentValue[i].get()
+                else:
+                    self.subVals[i] = self.entries[i].get()
+        for i in self.distroVals:
+            print(self.distroVals[i])
+
+        for i in self.subVals:
+            print(self.subVals[i])
+
+    def hatch(self, h_id):
+        hatchResult = qf.getHatch(h_id)
+        print(hatchResult)
+        self.labels['length'] = tk.Label(self, text='Average Length:', font=LARGE_FONT)
+        self.entries['length'] = tk.Entry(self)
+        self.entries['length'].insert(0, hatchResult[0][0])
+
+        self.labels['length'].grid(row=9, column=1)
+        self.entries['length'].grid(row=9, column=3)
+
+        self.labels['weight'] = tk.Label(self, text='Average Weight:', font=LARGE_FONT)
+        self.entries['weight'] = tk.Entry(self)
+        self.entries['weight'].insert(0, hatchResult[0][1])
+
+        self.labels['weight'].grid(row=10, column=1)
+        self.entries['weight'].grid(row=10, column=3)
+
+        taggedResult = qf.getTagged(h_id)
+        if(len(taggedResult)!=0):
+            self.labels['tagged'] = tk.Label(self, text='Percent Tagged:', font=LARGE_FONT)
+            self.entries['tagged'] = tk.Entry(self)
+            self.entries['tagged'].insert(0, taggedResult[0][1])
+
+            self.labels['tagged'].grid(row=11, column=1)
+            self.entries['tagged'].grid(row=11, column=3)
+
+
 
     def addOM(self, name, rowDD, label):
-        newLabel = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
+        self.labels[name] = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
         self.currentValue[name] = tk.StringVar(self)
         self.currentValue[name].set('Any..')
-        self.menus[name] = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
-        newLabel.grid(row=rowDD, column=1)
-        self.menus[name].grid(row=rowDD, column=3, pady=5)
+        self.entries[name] = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
+        self.labels[name].grid(row=rowDD, column=1)
+        self.entries[name].grid(row=rowDD, column=3, pady=5)
 
 
 class DuplicateDistro(tk.Frame):

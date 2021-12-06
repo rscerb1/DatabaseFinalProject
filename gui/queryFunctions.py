@@ -3,19 +3,12 @@ from datetime import datetime
 import mysql.connector
 import tkinter.messagebox
 
-# database = mysql.connector.connect(
-#   host="triton.towson.edu",
-#   user="acochr5",
-#   password="COSC*8z32u",
-#   database="acochr5db",
-#   port= '3360'
-# )
-
-database=mysql.connector.connect(
-  user="python",
-  password="123qweasdzxc",
-  host="localhost",
-  database="dbproj"
+database = mysql.connector.connect(
+  host="triton.towson.edu",
+  user="acochr5",
+  password="COSC*8z32u",
+  database="acochr5db",
+  port= '3360'
 )
 
 
@@ -77,6 +70,27 @@ def getDistroID():
 def getITIS():
   sql = "SELECT ITIS_NUMBER FROM SPECIES"
   return selectListQuery(sql)
+
+def getReleased(d_id):
+  cursor = database.cursor()
+  cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = {d_id}")
+  return cursor.fetchall()
+
+def getTransfer(d_id):
+  cursor = database.cursor()
+  cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = {d_id}")
+  return cursor.fetchall()
+
+
+def getHatch(h_id):
+  cursor = database.cursor()
+  cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID = {h_id}")
+  return cursor.fetchall()
+
+def getTagged(h_id):
+  cursor = database.cursor()
+  cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID = {h_id}")
+  return cursor.fetchall()
 
 # Distribution ID
 def getSingleDistro(d_id):
@@ -203,18 +217,37 @@ def deleteDistro(d_id):
   except mysql.connector.Error as err:
     tkinter.messagebox.showerror("Database Error", err)
 
-def editDistro(Date, Count, Fname, S_ITIS, d_id):
+def editDistro(distroVals, subVals, d_id):
   try:
-    print(Date)
-    print(Count)
-    print(Fname)
-    print(S_ITIS)
-    print(d_id)
     cursor = database.cursor()
-    cursor.execute(f"UPDATE DISTRIBUTION SET Date = '{Date}', Count = {Count}, Fname = '{Fname}', S_ITIS={S_ITIS} "
+    cursor.execute(f"UPDATE DISTRIBUTION SET Date = '{distroVals['calendar']}', Count = {distroVals['count']}, "
+                   f"Fname = '{distroVals['facilities']}', S_ITIS={distroVals['ITIS']} "
                    f"WHERE Distribution_ID = {d_id};")
+    if(subVals['latitude'] is not None):
+      cursor.execute(f"UPDATE RELEASED SET Latitude = {subVals['latitude']}, Longitude = {subVals['longitude']} "
+                     f"WHERE Distribution_ID = {d_id};")
+      cursor.execute(f"SELECT HID FROM RELEASED WHERE Distribution_ID = {d_id}")
+      h_id = cursor.fetchall()
+    else:
+      cursor.execute(f"UPDATE TRANSFER SET F_Name = '{subVals['transferFacility']}' WHERE Distribution_ID = {d_id};")
+      cursor.execute(f"SELECT HID FROM TRANSFER WHERE Distribution_ID = {d_id}")
+      h_id = cursor.fetchall()
+    if(subVals['length'] is not None):
+      cursor.execute(f"UPDATE HATCHED_DISTRIBUTION SET Average_length = {subVals['length']}, Average_weight = "
+                     f"{subVals['weight']} WHERE HID = {h_id[0][0]}")
+      if(subVals['tagged'] is not None):
+        cursor.execute(f"UPDATE TAGGED_DISTRIBUTION SET percent_tagged = {subVals['tagged']} WHERE HID = {h_id[0][0]}")
     database.commit()
     tkinter.messagebox.showinfo("Database Success", f"Successfully updated distribution ID {d_id}!")
   except mysql.connect.Error as err:
     tkinter.messagebox.showerror("Database Error", err)
+
+def isReleased(d_id):
+  cursor = database.cursor()
+  cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = '{d_id}';")
+  result = cursor.fetchall()
+  if(len(result)!=0):
+    return True;
+  else:
+    return False;
 
