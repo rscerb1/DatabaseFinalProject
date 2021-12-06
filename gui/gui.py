@@ -418,7 +418,6 @@ class EditDistro(tk.Frame):
         getButton.grid(row=20, column=4, sticky='s')
 
     def emptyFrame(self):
-        print("test")
         for i in self.labels:
             if self.labels[i] is not None:
                 self.labels[i].destroy()
@@ -571,7 +570,7 @@ class DuplicateDistro(tk.Frame):
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                  command=lambda: controller.show_frame(MainMenu))
         createButton = tk.Button(self, text='Duplicate', font=LARGE_FONT,
-                                 command=lambda: qf.distroExists(distroIDEntry.get()))
+                                 command=lambda: qf.duplicateDistro(distroIDEntry.get()))
 
         cancelButton.grid(row=9, column=1, sticky='s')
         createButton.grid(row=9, column=4, sticky='s')
@@ -592,11 +591,11 @@ class DeleteDistro(tk.Frame):
         # Buttons
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                  command=lambda: controller.show_frame(MainMenu))
-        createButton = tk.Button(self, text='Delete', font=LARGE_FONT,
+        deleteButton = tk.Button(self, text='Delete', font=LARGE_FONT,
                                  command=lambda: self.confirm(distroIDEntry.get()))
 
         cancelButton.grid(row=9, column=1, sticky='s')
-        createButton.grid(row=9, column=4, sticky='s')
+        deleteButton.grid(row=9, column=4, sticky='s')
 
     def confirm(self, d_id):
         check = tkinter.messagebox.askyesno("Delete Distribution", "Are you sure you want to delete this distribution?")
