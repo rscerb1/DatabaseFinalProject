@@ -91,19 +91,28 @@ class CreateDistro(tk.Frame):
         'lifeStages' : None,
         'species' : None,
         'rec' : None,
-        'type' : None
+        'type' : None,
+        'tag' : None,
+        'tFacility' : None
     }
     
     currentValue = {
-        'Date' : None,
         'regions' : None,
         'facilities' : None,
         'taxGroups' : None,
         'lifeStages' : None,
         'species' : None,
-        'rec' : None,
-        'type' : None
+        'tag' : None,
+        'tFacility' : None
     }
+    
+    calEntry = None
+    count = None
+    pTagged = None
+    avgLen = None
+    avgWt = None
+    lat = None
+    long = None
     
     dbLists = {
         'Date' : [],
@@ -112,7 +121,9 @@ class CreateDistro(tk.Frame):
         'taxGroups' : [],
         'lifeStages' : ['Egg', 'Juvenile', 'Adult'],
         'species' : [],
-        'type' : ['Transfer', 'Release']
+        'type' : ['Transfer', 'Release'],
+        'tag' : [],
+        'tFacility' : []
     } 
     
     regionsFromDB = ['']
@@ -123,18 +134,12 @@ class CreateDistro(tk.Frame):
         titleLabel = tk.Label(self, text='Create New Distribution', font=TITLE_FONT)
         titleLabel.grid(row=0, column=1, pady=10, columnspan=3)
         
-        # Count
-        countLabel = tk.Label(self, text='Count:', font=LARGE_FONT)
-        countEntry = tk.Entry(self)
-        countLabel.grid(row=1, column=1)
-        countEntry.grid(row=1, column=2)
-        
         # Date
         calLabel = tk.Label(self, text="Date:", font=LARGE_FONT)
-        calEntry = DateEntry(self, width=16, background="grey", foreground="white", bd=2)
-        calEntry.set_date(datetime.now())
+        self.calEntry = DateEntry(self, width=16, background="grey", foreground="white", bd=2)
+        self.calEntry.set_date(datetime.now())
         calLabel.grid(row=2, column=1)
-        calEntry.grid(row=2, column=2)
+        self.calEntry.grid(row=2, column=2)
         
         # Region Names
         self.dbLists['regions'] = qf.getRegions()
@@ -157,21 +162,63 @@ class CreateDistro(tk.Frame):
         self.dbLists['species'] = qf.getSpecies()
         self.addOM('species', 7, 'Species')
         
-        # Life Stages
+        # Distro Type
         self.addOM('type', 8, 'Distribution Type')
         
-        rec = None
-        recLabel = tk.Label(self, text='Recreational:',font=LARGE_FONT)
-        recLabel.grid(row=9, column=1, columnspan=2)
-        recButton = tk.Checkbutton(self,variable=rec, onvalue=1, offvalue=0)
-        recButton.grid(row=9, column=2)
+        self.dbLists['tFacility'] = qf.getFacilities()
+        self.addOM('tFacility', 9, 'Transfer Facility Name')
+        
+        # Tag Type
+        self.dbLists['tag'] = qf.getTagTypes()
+        self.addOM('tag', 10, 'Tag Type')
+        
+        # avg length
+        self.avgLen = tk.StringVar()
+        avgLenLabel = tk.Label(self, text='Average Length:', font=LARGE_FONT)
+        avgLenEntry = tk.Entry(self,textvariable=self.avgLen)
+        avgLenLabel.grid(row=11, column=1)
+        avgLenEntry.grid(row=11, column=2)
+        
+        # avg weight
+        self.angWt = tk.StringVar()
+        angWtLabel = tk.Label(self, text='Average Weight:', font=LARGE_FONT)
+        angWtEntry = tk.Entry(self,textvariable=self.angWt)
+        angWtLabel.grid(row=12, column=1)
+        angWtEntry.grid(row=12, column=2)
+        
+        # long
+        self.lat = tk.StringVar()
+        latLabel = tk.Label(self, text='Release Latitude:', font=LARGE_FONT)
+        latEntry = tk.Entry(self,textvariable=self.lat)
+        latLabel.grid(row=13, column=1)
+        latEntry.grid(row=13, column=2)
+        
+        # Tag Percent
+        self.long = tk.StringVar()
+        longLabel = tk.Label(self, text='Release Longitude:', font=LARGE_FONT)
+        longEntry = tk.Entry(self,textvariable=self.long)
+        longLabel.grid(row=14, column=1)
+        longEntry.grid(row=14, column=2)
+                
+        # Tag Percent
+        self.pTagged = tk.StringVar()
+        pTaggedLabel = tk.Label(self, text='Percent Tagged:', font=LARGE_FONT)
+        pTaggedEntry = tk.Entry(self,textvariable=self.pTagged)
+        pTaggedLabel.grid(row=15, column=1)
+        pTaggedEntry.grid(row=15, column=2)
+                
+        # Count
+        self.count = tk.StringVar()
+        countLabel = tk.Label(self, text='Count:', font=LARGE_FONT)
+        countEntry = tk.Entry(self,textvariable=self.count)
+        countLabel.grid(row=16, column=1)
+        countEntry.grid(row=16, column=2)
         
         # Buttons
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                command= lambda: controller.show_frame(MainMenu))
         createButton = tk.Button(self, text='Create', font=LARGE_FONT,
-                                command= lambda: controller.show_frame(MainMenu))
-                
+                                command= lambda: self.create())
         cancelButton.grid(row=20,column=1)
         createButton.grid(row=20,column=3)
     
@@ -183,7 +230,71 @@ class CreateDistro(tk.Frame):
         newLabel.grid(row=rowDD, column=1)
         self.menus[name].grid(row=rowDD, column=2, pady=5)
         self.menus[name].config(width = 14)
+        
+    def checkInt(self, name, input):
+        if(input == None):
+            # error popup
+            print(f'WARNING: {name} is required')
+            return False
+        if(not input.isdigit()):
+            # error popup
+            print(f'WARNING: {name} not number')
+            return False
+        if(name == 'Percent Tagged'):
+            if(int(input) == 0 or int(input) >= (100)):
+                # error popup
+                print(f'WARNING: {name} should be between 0 to 100')
+                return False
+        return True
 
+    def create(self):
+        inputs = {}
+        
+        # check values from dropdowns and add them to inputs
+        for key in self.currentValue:
+            if(self.currentValue[key].get() == 'Select..'):
+                # error popup
+                print(f'WARNING: {key} is required')
+                return
+            inputs[key] = self.currentValue[key].get()
+        
+        # check textboxes
+        # check count
+        if(not self.checkInt('Count', self.count.get())):
+            return
+        inputs['Count'] = str(self.count.get())
+        
+        # check tagged fields
+        if(['type'].get() != None):
+            if(not self.checkInt('Percent Tagged', self.pTagged.get())):
+                return
+            inputs['pTagged'] = str(self.pTagged.get())
+        
+        # check released
+        if(not self.checkInt('Average Length', self.avgLen.replace('.','',1))):
+            return
+        inputs['avgLen'] = str(self.avgLen.get())
+
+        if(not self.checkInt('Average Weight', self.avgLen.replace('.','',1))):
+            return
+        inputs['avgLen'] = str(self.avgLen.get())
+
+        if(not self.checkInt('Latitude', self.avgLen.replace('.','',1))):
+            return
+        inputs['avgLen'] = str(self.avgLen.get())
+
+        if(not self.checkInt('Longitude', self.avgLen.replace('.','',1))):
+            return
+        inputs['avgLen'] = str(self.avgLen.get())
+        
+        
+        inputs['date'] = str(self.calEntry.get_date())
+        inputs['avgLen'] = str(self.avgLen.get())
+        inputs['avgWt'] = str(self.avgWt.get())
+        inputs['lat'] = str(self.lat.get())
+        inputs['long'] = str(self.long.get())
+        qf.createDistro(inputs)
+        
 class SearchDistros(tk.Frame):
     
     results = []
