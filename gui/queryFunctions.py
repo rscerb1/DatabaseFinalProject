@@ -12,6 +12,15 @@ database = mysql.connector.connect(
 )
 
 
+class Error(Exception):
+  """Base class for other exceptions"""
+  pass
+
+
+class DistributionNotExist(Error):
+  """Raised when there is no Distribution_ID"""
+  pass
+
 # select a list from the database, return list
 def selectListQuery(sql):
   cursor = database.cursor()
@@ -53,12 +62,12 @@ def getDistros(filters):
     # species filter
     if(param[0] == 'species'):
       sqlFilters += f"S_ITIS = (SELECT ITIS_NUMBER FROM SPECIES WHERE Name = '{param[1]}')"
-    
+
   sql += sqlFilters + ';'
   cursor = database.cursor()
   cursor.execute(sql)
   return cursor.fetchall()
-      
+
     # TODO: test 'sqlFilters' with multiple selections then add it to 'sql, make sure to add ';' and stuff'
 
 # Distribution ID
@@ -67,52 +76,62 @@ def getDistroID():
   return selectListQuery(sql)
 
 def getITIS():
+  """Get the ITIS from species table"""
   sql = "SELECT ITIS_NUMBER FROM SPECIES"
   return selectListQuery(sql)
 
 def getReleased(d_id):
+  """Get the released distributions"""
   cursor = database.cursor()
-  cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = {d_id}")
+  cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = %s;", (d_id, ))
   return cursor.fetchall()
 
 def getTransfer(d_id):
+  """Get the transfer distributions"""
   cursor = database.cursor()
-  cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = {d_id}")
+  cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = %s;", (d_id, ))
   return cursor.fetchall()
 
 
 def getHatch(h_id):
+  """Get the hatched distributions"""
   cursor = database.cursor()
-  cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID = {h_id}")
+  cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID = %s;", (h_id, ))
   return cursor.fetchall()
 
 def getTagged(h_id):
+  """Get the tagged distributions"""
   cursor = database.cursor()
-  cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID = {h_id}")
+  cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID = %s;", (h_id, ))
   return cursor.fetchall()
 
 # Distribution ID
 def getSingleDistro(d_id):
+  """Get a single distribution based of the ID"""
   cursor = database.cursor()
-  cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = {d_id}")
+  cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = %s;", (d_id, ))
   return cursor.fetchall()
 
 # Fiscal Years List
 def getYears():
+  """Get the fiscal years"""
   sql = "SELECT DISTINCT YEAR(DATE) FROM DISTRIBUTION"
   dates = selectListQuery(sql)
   years = []
   for x in dates:
     years.append(x)
   return years
-  
+
 # Region Names List
 def getRegions():
+  """Get the regions from Region table"""
   sql = "SELECT Name FROM REGION"
   return selectListQuery(sql)
 
 # Facility Names List
 def getFacilities(region = None):
+  """Get the Facilities Name"""
+  '''SQL INJECTION CAN HAPPEN HERE'''
   sql = f"SELECT NAME FROM FACILITY WHERE R_Name = '{region}';"
   if(region == None):
     sql = f"SELECT NAME FROM FACILITY;"
@@ -120,6 +139,7 @@ def getFacilities(region = None):
 
 # Taxonomic Groups list
 def getTaxGroups():
+  """Get the taxonomic_group from Species"""
   sql = f"SELECT DISTINCT taxonomic_group FROM SPECIES;"
   return selectListQuery(sql)
 
@@ -132,21 +152,19 @@ def getTagTypes():
 
 # Species List
 def getSpecies(taxGroup = None):
+  """Get the species names from table Species"""
+  '''SQL INJECTION CAN HAPPEN HERE'''
   sql = f"SELECT Name FROM SPECIES WHERE taxonomic_group = '{taxGroup}'"
   if(taxGroup == None):
     sql = "SELECT Name FROM SPECIES"
   return selectListQuery(sql)
 
 # get distribution
-def distroExists(d_id):
+def duplicateDistro(d_id):
+  """Duplicate a distribution"""
   # -1 error
-  # 0 doesn't exist
   # 1 released distribution
   # 2 transfer distribution
-  # 3 released distribution hatched
-  # 4 transfer distribution hatched
-  # 5 released distribution tagged hatched
-  # 6 transfer distribution tagged hatched
 
   #initialized type to error
   type = -1
@@ -154,15 +172,16 @@ def distroExists(d_id):
   isTagged = False
   hatched = None
   cursor = database.cursor()
-  cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = '{d_id}';")
+  cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = %s;", (d_id, ))
   result = cursor.fetchall()
 
   if(len(result)==0):
-    type=0
+    tkinter.messagebox.showerror("Database Error", f"Distribution {d_id} does not exist")
+    return type
   else:
-    cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = {d_id};")
+    cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = %s;", (d_id, ))
     releasedResult = cursor.fetchall()
-    cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = {d_id};")
+    cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = %s;", (d_id, ))
     transferResult = cursor.fetchall()
     if(len(transferResult)!=0&len(releasedResult)==0):
       type=2
@@ -171,9 +190,9 @@ def distroExists(d_id):
       type=1
       hatched = releasedResult[0][3]
     if hatched is not None:
-      cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID={hatched};")
+      cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID= %s;", (hatched, ))
       hatchedResult = cursor.fetchall()
-      cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID={hatched};")
+      cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID=%s;", (hatched, ))
       taggedResult = cursor.fetchall()
       if(type==1 or type==2):
         isHatched = True
@@ -187,8 +206,9 @@ def distroExists(d_id):
       cursor.execute("INSERT INTO RELEASED (Distribution_ID, Latitude, Longitude) VALUES (LAST_INSERT_ID(), "
                      "%s,%s);",(releasedResult[0][1],releasedResult[0][2]))
     if type==2:
-      cursor.execute(f"INSERT INTO TRANSFER (Distribution_ID, F_Name) VALUES (LAST_INSERT_ID(), "
-                     f"'{transferResult[0][1]}');")
+      # cursor.execute(f"INSERT INTO TRANSFER (Distribution_ID, F_Name) VALUES (LAST_INSERT_ID(), "
+      #                f"'{transferResult[0][1]}');")
+      cursor.execute("INSERT INTO TRANSFER (Distribution_ID, F_Name) VALUES (LAST_INSERT_ID(), %s);", (transferResult[0][1], ))
 
     if isHatched:
       cursor.execute("INSERT INTO HATCHED_DISTRIBUTION (Average_length, Average_weight, life_stage) VALUES (%s,%s,%s)",
@@ -207,12 +227,12 @@ def distroExists(d_id):
 
     database.commit()
     tkinter.messagebox.showinfo("Database Success", "Successfully duplicated distribution!")
-    #ask if we make this so it takes hatched, or not
   else:
     tkinter.messagebox.showerror("Database Error", "Was not able to duplicate distribution")
   return type
 
 def addSpecies(is_recreational, is_aquatic, ITIS, taxonomic_group, name):
+  """Add a species"""
   try:
     cursor = database.cursor()
     cursor.execute("INSERT INTO SPECIES (is_recreational, is_aquatic, ITIS_NUMBER, taxonomic_group, Name) VALUES (%s,"
@@ -223,6 +243,7 @@ def addSpecies(is_recreational, is_aquatic, ITIS, taxonomic_group, name):
     tkinter.messagebox.showerror("Database Error", err)
 
 def deleteDistro(d_id):
+  """Delete a distribution"""
   isReleased = False
   isTransfer = False
   isHatched = False
@@ -230,13 +251,18 @@ def deleteDistro(d_id):
   hid = None
   try:
     cursor = database.cursor()
-    cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = {d_id};")
+    cursor.execute("SELECT * FROM DISTRIBUTION WHERE DISTRIBUTION_ID = %s;", (d_id, ))
+    result = cursor.fetchall()
+    if(len(result)==0):
+      raise DistributionNotExist
+    cursor.execute("SELECT * FROM RELEASED WHERE Distribution_ID = %s;", (d_id, ))
     releasedResult = cursor.fetchall()
+    print(releasedResult)
     if(len(releasedResult)!=0):
       isReleased = True
       print(releasedResult)
       hid = releasedResult[0][3]
-    cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = {d_id};")
+    cursor.execute("SELECT * FROM TRANSFER WHERE Distribution_ID = %s;", (d_id, ))
     transferResult=cursor.fetchall()
     if(len(transferResult)!=0):
       isTransfer = True
@@ -244,54 +270,62 @@ def deleteDistro(d_id):
       hid = transferResult[0][2]
     if hid is not None:
       isHatched = True
-      cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID = {hid};")
+      cursor.execute("SELECT * FROM TAGGED_DISTRIBUTION WHERE HID = %s;", (hid, ))
       if cursor.fetchall() != 0:
         isTagged = True
 
     if isTagged:
-      cursor.execute(f"DELETE FROM TAGGED_DISTRIBUTION WHERE HID = {hid};")
+      cursor.execute("DELETE FROM TAGGED_DISTRIBUTION WHERE HID = %s;", (hid, ))
     if isReleased:
-      cursor.execute(f"DELETE FROM RELEASED WHERE Distribution_ID = {d_id};")
+      cursor.execute("DELETE FROM RELEASED WHERE Distribution_ID = %s;", (d_id, ))
     if isTransfer:
-      cursor.execute(f"DELETE FROM TRANSFER WHERE Distribution_ID = {d_id};")
+      cursor.execute("DELETE FROM TRANSFER WHERE Distribution_ID = %s;", (d_id, ))
     if isHatched:
-      cursor.execute(f"DELETE FROM HATCHED_DISTRIBUTION WHERE HID = {hid};")
+      cursor.execute("DELETE FROM HATCHED_DISTRIBUTION WHERE HID = %s;", (hid, ))
 
-    cursor.execute(f"DELETE FROM DISTRIBUTION WHERE Distribution_ID = {d_id};")
+    cursor.execute("DELETE FROM DISTRIBUTION WHERE Distribution_ID = %s;", (d_id, ))
     database.commit()
     tkinter.messagebox.showinfo("Database Success", f"Successfully deleted distribution ID {d_id}!")
   except mysql.connector.Error as err:
     tkinter.messagebox.showerror("Database Error", err)
+  except DistributionNotExist:
+    tkinter.messagebox.showerror("Database Error", f"Distribution {d_id} does not exist in the database")
 
 def editDistro(distroVals, subVals, d_id):
+  """Edit a distribution"""
   try:
     cursor = database.cursor()
-    cursor.execute(f"UPDATE DISTRIBUTION SET Date = '{distroVals['calendar']}', Count = {distroVals['count']}, "
-                   f"Fname = '{distroVals['facilities']}', S_ITIS={distroVals['ITIS']} "
-                   f"WHERE Distribution_ID = {d_id};")
+    cursor.execute("UPDATE DISTRIBUTION SET Date = %s, Count = %s, Fname = %s, S_ITIS=%s "
+                   "WHERE Distribution_ID = %s;", (distroVals['calendar'], distroVals['count'],
+                                                    distroVals['facilities'], distroVals['ITIS'], d_id ))
     if(subVals['latitude'] is not None):
-      cursor.execute(f"UPDATE RELEASED SET Latitude = {subVals['latitude']}, Longitude = {subVals['longitude']} "
-                     f"WHERE Distribution_ID = {d_id};")
-      cursor.execute(f"SELECT HID FROM RELEASED WHERE Distribution_ID = {d_id}")
+      cursor.execute("UPDATE RELEASED SET Latitude = %s, Longitude = %s "
+                     "WHERE Distribution_ID = %s;", (subVals['latitude'],subVals['longitude'], d_id))
+      cursor.execute(f"SELECT HID FROM RELEASED WHERE Distribution_ID = %s", (d_id, ))
       h_id = cursor.fetchall()
     else:
-      cursor.execute(f"UPDATE TRANSFER SET F_Name = '{subVals['transferFacility']}' WHERE Distribution_ID = {d_id};")
-      cursor.execute(f"SELECT HID FROM TRANSFER WHERE Distribution_ID = {d_id}")
+      cursor.execute(f"UPDATE TRANSFER SET F_Name = %s WHERE Distribution_ID = %s;",
+                     (subVals['transferFacility'], d_id))
+      cursor.execute(f"SELECT HID FROM TRANSFER WHERE Distribution_ID = %s;", (d_id, ))
       h_id = cursor.fetchall()
     if(subVals['length'] is not None):
-      cursor.execute(f"UPDATE HATCHED_DISTRIBUTION SET Average_length = {subVals['length']}, Average_weight = "
-                     f"{subVals['weight']} WHERE HID = {h_id[0][0]}")
+      cursor.execute(f"UPDATE HATCHED_DISTRIBUTION SET Average_length = %s, Average_weight = "
+                     f"%s WHERE HID = %s;", (subVals['length'],subVals['weight'],h_id[0][0] ))
       if(subVals['tagged'] is not None):
-        cursor.execute(f"UPDATE TAGGED_DISTRIBUTION SET percent_tagged = {subVals['tagged']} WHERE HID = {h_id[0][0]}")
+        cursor.execute(f"UPDATE TAGGED_DISTRIBUTION SET percent_tagged = %s WHERE HID = %s", (subVals['tagged'],h_id[0][0] ))
     database.commit()
     tkinter.messagebox.showinfo("Database Success", f"Successfully updated distribution ID {d_id}!")
   except mysql.connect.Error as err:
     tkinter.messagebox.showerror("Database Error", err)
 
 def isReleased(d_id):
+  """Check to see if a distribution is a released distribution.
+  We do not need to check if it is a transfer distribution because if this function is false, we will know that
+  it is a transfer distribution"""
   cursor = database.cursor()
-  cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = '{d_id}';")
+  cursor.execute("SELECT * FROM RELEASED WHERE Distribution_ID = %s;", (d_id, ))
   result = cursor.fetchall()
+  print(result)
   if(len(result)!=0):
     return True
   else:
