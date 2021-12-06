@@ -64,7 +64,6 @@ def getDistros(filters):
       sqlFilters += f"S_ITIS = (SELECT ITIS_NUMBER FROM SPECIES WHERE Name = '{param[1]}')"
 
   sql += sqlFilters + ';'
-  print(sql)
   cursor = database.cursor()
   cursor.execute(sql)
   return cursor.fetchall()
@@ -144,6 +143,13 @@ def getTaxGroups():
   sql = f"SELECT DISTINCT taxonomic_group FROM SPECIES;"
   return selectListQuery(sql)
 
+# Tag type list
+def getTagTypes():
+  sql = f'SELECT DISTINCT tag_type FROM TAGGED_DISTRIBUTION;'
+  tags = selectListQuery(sql)
+  tags.insert(0,'None')
+  return tags
+
 # Species List
 def getSpecies(taxGroup = None):
   """Get the species names from table Species"""
@@ -152,20 +158,6 @@ def getSpecies(taxGroup = None):
   if(taxGroup == None):
     sql = "SELECT Name FROM SPECIES"
   return selectListQuery(sql)
-
-
-# insert new distro
-def newDistro(date, count, facility, itis, hatched=False, life_stage='Egg', len=None, weight=None):
-  """Insert a new distribution"""
-  '''SQL INJECTION CAN HAPPEN HERE'''
-  sql = f"INSERT INTO DISTRIBUTION (Date, Count, Fname, S_ITIS) VALUES ('{date}', {count}, '{facility}', {itis});"
-  if(hatched):
-      sql = (f"BEGIN {sql} INSERT INTO HATCHED_DISTRIBUTION (Average_length, life_stage, Average_weight, HID) " 
-             "VALUES ('{len}', '{life_stage}, '{weight}', last_insert_id())")
-  cursor = database.cursor()
-  cursor.execute(sql)
-  database.commit
-
 
 # get distribution
 def duplicateDistro(d_id):
@@ -335,7 +327,42 @@ def isReleased(d_id):
   result = cursor.fetchall()
   print(result)
   if(len(result)!=0):
-    return True;
+    return True
   else:
-    return False;
+    return False
 
+def createDistro(input):
+  cursor = database.cursor()
+  cursor.execute(f"SELECT ITIS_NUMBER FROM SPECIES WHERE Name = '{input['species']}';")
+  itis = cursor.fetchone()
+  
+  sqlDistro = f"INSERT INTO DISTRIBUTION (Date, Count, Fname, S_ITIS) VALUES ('{input['date']}', {input['Count']}, '{input['facilities']}', {itis[0]});"
+  print(sqlDistro)
+  cursor.execute(sqlDistro)
+  
+  if(input['type'] == 'Release'):
+    sql = f"INSERT INTO RELEASED (Distribution_ID, Latitude, Longitude) VALUES (LAST_INSERT_ID(), input['lat'], input['long']);"
+    cursor.execute(sql)
+    if(input['lifeStages'] != 'Egg'):
+      sql = "INSERT INTO HATCHED_DISTRIBUTION (Average_length, Average_weight, life_stage) VALUES (input['avgLen'], input['avgWt'], 'input['lifeStages']');"
+      cursor.execute(sql)
+      cursor.exexecuteicute("UPDATE RELEASED SET HID = LAST_INSERT_ID();")
+      if(input['tag'] != 'None'):
+        sql = f"INSERT INTO TAGGED_DISTRIBUTION (tag_type, percent_tagged, HID) VALUES ('{input['tag']}', {input['pTagged']}, LAST_INSERT_ID());"
+        cursor.execute(sql)
+        
+  if(input['type'] == 'Transfer'):
+    sql = f"INSERT INTO TRANSFER (Distribution_ID, F_Name) VALUES (LAST_INSERT_ID(), '{input['tFacility']}');"
+    cursor.execute(sql)
+    if(input['lifeStages'] != 'Egg'):
+      sql = "INSERT INTO HATCHED_DISTRIBUTION (Average_length, Average_weight, life_stage) VALUES (input['avgLen'], input['avgWt'], 'input['lifeStages']');"
+      cursor.execute(sql)
+      cursor.execute("UPDATE TRANSFER SET HID = LAST_INSERT_ID();")
+      if(input['tag'] != 'None'):
+        sql = f"INSERT INTO TAGGED_DISTRIBUTION (tag_type, percent_tagged, HID) VALUES ('{input['tag']}', {input['pTagged']}, LAST_INSERT_ID());"
+        cursor.execute(sql)
+
+  database.commit()
+  
+  for key in input:
+    print(key, input[key])
