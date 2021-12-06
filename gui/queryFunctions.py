@@ -229,8 +229,40 @@ def addSpecies(is_recreational, is_aquatic, ITIS, taxonomic_group, name):
     tkinter.messagebox.showerror("Database Error", err)
 
 def deleteDistro(d_id):
+  isReleased = False
+  isTransfer = False
+  isHatched = False
+  isTagged = False
+  hid = None
   try:
     cursor = database.cursor()
+    cursor.execute(f"SELECT * FROM RELEASED WHERE Distribution_ID = {d_id};")
+    releasedResult = cursor.fetchall()
+    if(len(releasedResult)!=0):
+      isReleased = True
+      print(releasedResult)
+      hid = releasedResult[0][3]
+    cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = {d_id};")
+    transferResult=cursor.fetchall()
+    if(len(transferResult)!=0):
+      isTransfer = True
+      print(transferResult)
+      hid = transferResult[0][2]
+    if hid is not None:
+      isHatched = True
+      cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID = {hid};")
+      if cursor.fetchall() != 0:
+        isTagged = True
+
+    if isTagged:
+      cursor.execute(f"DELETE FROM TAGGED_DISTRIBUTION WHERE HID = {hid};")
+    if isReleased:
+      cursor.execute(f"DELETE FROM RELEASED WHERE Distribution_ID = {d_id};")
+    if isTransfer:
+      cursor.execute(f"DELETE FROM TRANSFER WHERE Distribution_ID = {d_id};")
+    if isHatched:
+      cursor.execute(f"DELETE FROM HATCHED_DISTRIBUTION WHERE HID = {hid};")
+
     cursor.execute(f"DELETE FROM DISTRIBUTION WHERE Distribution_ID = {d_id};")
     database.commit()
     tkinter.messagebox.showinfo("Database Success", f"Successfully deleted distribution ID {d_id}!")
