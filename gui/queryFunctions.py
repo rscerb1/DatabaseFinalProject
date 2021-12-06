@@ -156,6 +156,9 @@ def distroExists(d_id):
 
   #initialized type to error
   type = -1
+  isHatched = False
+  isTagged = False
+  hatched = None
   cursor = database.cursor()
   cursor.execute(f"SELECT * FROM DISTRIBUTION WHERE Distribution_ID = '{d_id}';")
   result = cursor.fetchall()
@@ -167,33 +170,50 @@ def distroExists(d_id):
     releasedResult = cursor.fetchall()
     cursor.execute(f"SELECT * FROM TRANSFER WHERE Distribution_ID = {d_id};")
     transferResult = cursor.fetchall()
-    if(len(releasedResult)==0&len(transferResult)!=0):
+    if(len(transferResult)!=0&len(releasedResult)==0):
       type=2
       hatched = transferResult[0][2]
     elif(len(releasedResult)!=0&len(transferResult)==0):
       type=1
       hatched = releasedResult[0][3]
-
     if hatched is not None:
       cursor.execute(f"SELECT * FROM HATCHED_DISTRIBUTION WHERE HID={hatched};")
       hatchedResult = cursor.fetchall()
       cursor.execute(f"SELECT * FROM TAGGED_DISTRIBUTION WHERE HID={hatched};")
       taggedResult = cursor.fetchall()
-      if(type==1):
-        type=3
-      elif(type==2):
-        type=4
-      if(len(taggedResult)!=0 & type==4):
-        type=6
-      elif(len(taggedResult)!=0 & type==3):
-        type=5
+      if(type==1 or type==2):
+        isHatched = True
+      if(len(taggedResult)!=0):
+        isTagged = True
 
   if type!=-1:
     cursor.execute("INSERT INTO DISTRIBUTION (Date, Count, Fname, S_ITIS) VALUES (%s,%s,%s,%s);",
                    (result[0][0].strftime('%Y-%m-%d'), result[0][1], result[0][2], result[0][4]))
+    if type==1:
+      cursor.execute("INSERT INTO RELEASED (Distribution_ID, Latitude, Longitude) VALUES (LAST_INSERT_ID(), "
+                     "%s,%s);",(releasedResult[0][1],releasedResult[0][2]))
+    if type==2:
+      cursor.execute(f"INSERT INTO TRANSFER (Distribution_ID, F_Name) VALUES (LAST_INSERT_ID(), "
+                     f"'{transferResult[0][1]}');")
+
+    if isHatched:
+      cursor.execute("INSERT INTO HATCHED_DISTRIBUTION (Average_length, Average_weight, life_stage) VALUES (%s,%s,%s)",
+                     (hatchedResult[0][0],hatchedResult[0][1],hatchedResult[0][3]))
+
+      if type==1:
+        cursor.execute("UPDATE RELEASED SET HID = LAST_INSERT_ID() WHERE DISTRIBUTION_ID = (SELECT MAX(DISTRIBUTION_ID) "
+                       "FROM DISTRIBUTION);")
+      if type==2:
+        cursor.execute("UPDATE TRANSFER SET HID = LAST_INSERT_ID() WHERE DISTRIBUTION_ID = (SELECT MAX(DISTRIBUTION_ID) "
+                       "FROM DISTRIBUTION);")
+
+      if isTagged:
+        cursor.execute("INSERT INTO TAGGED_DISTRIBUTION (tag_type, percent_tagged, HID) VALUES (%s, %s, LAST_INSERT_ID()"
+                       ");",(taggedResult[0][0],taggedResult[0][1]))
+
+    database.commit()
     tkinter.messagebox.showinfo("Database Success", "Successfully duplicated distribution!")
     #ask if we make this so it takes hatched, or not
-    database.commit()
   else:
     tkinter.messagebox.showerror("Database Error", "Was not able to duplicate distribution")
   return type
