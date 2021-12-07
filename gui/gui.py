@@ -275,20 +275,20 @@ class CreateDistro(tk.Frame):
     def checkInt(self, name, input):
         if(input == None or input == ''):
             # error popup
-            print(f'WARNING: {name} is required')
+            tk.messagebox.showerror(title='Warning', message=f'{name} is required', icon='warning')
             return False
         if(not input.isdigit()):
             # error popup
-            print(f'WARNING: {name} not number')
+            tk.messagebox.showerror(title='Warning', message=f'{name} should be a number', icon='warning')
             return False
         if(len(input) > 8):
             #error popup
-            print(f"WARNING: {name} is too long")
+            tk.messagebox.showerror(title='Warning', message=f'{name} is too long', icon='warning')
             return False
         if(name == 'Percent Tagged'):
             if(int(input) == 0 or int(input) >= (100)):
                 # error popup
-                print(f'WARNING: {name} should be between 0 to 100')
+                tk.messagebox.showerror(title='Warning', message=f'{name} should be in range 0-100', icon='warning')
                 return False
         return True
 
@@ -303,7 +303,7 @@ class CreateDistro(tk.Frame):
             if(self.currentValue[key].get() == 'Select..'):
                 if(not (key == 'tFacility' and self.currentValue['type'].get() == 'Release')):
                     # error popup
-                    print(f'WARNING: {key} is required')
+                    tk.messagebox.showerror(title='Warning', message=f'{key} is required', icon='warning')
                     return
             inputs[key] = self.currentValue[key].get()
         
@@ -449,13 +449,16 @@ class SearchDistros(tk.Frame):
             file = f'/Distro-Report({count})'
             count += 1
         # write csv
-        with open(dir+file+'.csv', 'w', newline='') as csvfile:
-            distroWriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-            distroWriter.writerow(['Date', 'Count', 'Facility', 'Distribution ID', 'Species ITIS'])
-            for distro in self.results:
-                distroWriter.writerow(distro)
-            # alter user of created file
-            tkinter.messagebox.showinfo(title='Distrobution Exporter', message=f'File Created:\n{dir}{file}.csv')
+        try:
+            with open(dir+file+'.csv', 'w', newline='') as csvfile:
+                distroWriter = csv.writer(csvfile, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+                distroWriter.writerow(['Date', 'Count', 'Facility', 'Distribution ID', 'Species ITIS'])
+                for distro in self.results:
+                    distroWriter.writerow(distro)
+                # alter user of created file
+                tk.messagebox.showinfo(title='Distrobution Exporter', message=f'File Created:\n{dir}{file}.csv', icon='info')
+        except:
+            tk.messagebox.showinfo(title='Distrobution Exporter', message='File Creation Failed', icon='warning')
     
     def addDistro(self, win, value, r, c):
         label = tk.Label(win, text=f'{value}', font=LARGE_FONT)
