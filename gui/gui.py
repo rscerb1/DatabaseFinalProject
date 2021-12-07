@@ -42,7 +42,6 @@ class ManageWindows(tk.Tk):
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.tkraise()
-
         
 class Page(tk.Frame):
     def __init__(self, *args, **kwargs):
@@ -86,28 +85,22 @@ class MainMenu(Page):
 
 class CreateDistro(tk.Frame):
     """This frame is for creating a distribution"""
-    menus = {
-        'Date' : None,
-        'regions' : None,
-        'facilities' : None,
-        'taxGroups' : None,
-        'lifeStages' : None,
-        'species' : None,
-        'rec' : None,
-        'type' : None,
-        'tag' : None,
-        'tFacility' : None
-    }
+    menus = {}
+    hiddenWids = {}
+    omLabels = {}
+    currentValue = {}
     
-    currentValue = {
-        'regions' : None,
-        'facilities' : None,
-        'taxGroups' : None,
-        'lifeStages' : None,
-        'species' : None,
-        'tag' : None,
-        'tFacility' : None
-    }
+    dbLists = {
+        'Date' : [],
+        'regions' : [],
+        'facilities' : [],
+        'taxGroups' : [],
+        'species' : [],
+        'lifeStages' : ['Egg', 'Juvenile', 'Adult'],
+        'type' : ['Transfer', 'Release'],
+        'tag' : [],
+        'tFacility' : []
+    } 
     
     calEntry = None
     count = None
@@ -116,24 +109,14 @@ class CreateDistro(tk.Frame):
     avgWt = None
     lat = None
     long = None
-    
-    dbLists = {
-        'Date' : [],
-        'regions' : [],
-        'facilities' : [],
-        'taxGroups' : [],
-        'lifeStages' : ['Egg', 'Juvenile', 'Adult'],
-        'species' : [],
-        'type' : ['Transfer', 'Release'],
-        'tag' : [],
-        'tFacility' : []
-    } 
-    
-    regionsFromDB = ['']
-
+    hatchedHidden = True
+    hatchedPrev = None
+    taggedHidden = True
+    taggedPrev = None
+    distroPrev = None
+        
     def __init__(self, parent, controller):
         tk.Frame.__init__(self,parent)
-        
         titleLabel = tk.Label(self, text='Create New Distribution', font=TITLE_FONT)
         titleLabel.grid(row=0, column=1, pady=10, columnspan=3)
         
@@ -153,95 +136,154 @@ class CreateDistro(tk.Frame):
         self.dbLists['facilities'] = qf.getFacilities()
         self.addOM('facilities', 4, 'Facility Name')
         
-        # Life Stages
-        self.addOM('lifeStages', 5, 'Life Stage')
-        
         # Taxonomic Groups
         self.dbLists['taxGroups'] = qf.getTaxGroups()
-        self.addOM('taxGroups', 6, 'Taxonomic Group')
+        self.addOM('taxGroups', 5, 'Taxonomic Group')
         # self.currentValue['taxGroups'].trace_variable('w', self.updateSpeciesList)
 
         # Species 
         self.dbLists['species'] = qf.getSpecies()
-        self.addOM('species', 7, 'Species')
+        self.addOM('species', 6, 'Species')
+        
+        # Life Stages
+        self.addOM('lifeStages', 7, 'Life Stage')
+        self.currentValue['lifeStages'].trace('w', self.showHatched)
         
         # Distro Type
-        self.addOM('type', 8, 'Distribution Type')
-        
-        self.dbLists['tFacility'] = qf.getFacilities()
-        self.addOM('tFacility', 9, 'Transfer Facility Name')
-        
-        # Tag Type
-        self.dbLists['tag'] = qf.getTagTypes()
-        self.addOM('tag', 10, 'Tag Type')
-        
-        # avg length
-        self.avgLen = tk.StringVar()
-        avgLenLabel = tk.Label(self, text='Average Length:', font=LARGE_FONT)
-        avgLenEntry = tk.Entry(self,textvariable=self.avgLen)
-        avgLenLabel.grid(row=11, column=1)
-        avgLenEntry.grid(row=11, column=2)
-        
-        # avg weight
-        self.angWt = tk.StringVar()
-        angWtLabel = tk.Label(self, text='Average Weight:', font=LARGE_FONT)
-        angWtEntry = tk.Entry(self,textvariable=self.angWt)
-        angWtLabel.grid(row=12, column=1)
-        angWtEntry.grid(row=12, column=2)
-        
-        # long
-        self.lat = tk.StringVar()
-        latLabel = tk.Label(self, text='Release Latitude:', font=LARGE_FONT)
-        latEntry = tk.Entry(self,textvariable=self.lat)
-        latLabel.grid(row=13, column=1)
-        latEntry.grid(row=13, column=2)
-        
-        # Tag Percent
-        self.long = tk.StringVar()
-        longLabel = tk.Label(self, text='Release Longitude:', font=LARGE_FONT)
-        longEntry = tk.Entry(self,textvariable=self.long)
-        longLabel.grid(row=14, column=1)
-        longEntry.grid(row=14, column=2)
-                
-        # Tag Percent
-        self.pTagged = tk.StringVar()
-        pTaggedLabel = tk.Label(self, text='Percent Tagged:', font=LARGE_FONT)
-        pTaggedEntry = tk.Entry(self,textvariable=self.pTagged)
-        pTaggedLabel.grid(row=15, column=1)
-        pTaggedEntry.grid(row=15, column=2)
+        self.addOM('type', 12, 'Distribution Type')
+        self.currentValue['type'].trace('w', self.showDistoType)
                 
         # Count
         self.count = tk.StringVar()
         countLabel = tk.Label(self, text='Count:', font=LARGE_FONT)
         countEntry = tk.Entry(self,textvariable=self.count)
-        countLabel.grid(row=16, column=1)
-        countEntry.grid(row=16, column=2)
+        countLabel.grid(row=18, column=1)
+        countEntry.grid(row=18, column=2)
         
         # Buttons
         cancelButton = tk.Button(self, text='Cancel', font=LARGE_FONT,
                                command= lambda: controller.show_frame(MainMenu))
+
         createButton = tk.Button(self, text='Create', font=LARGE_FONT,
                                 command= lambda: self.create())
         cancelButton.grid(row=20,column=1)
         createButton.grid(row=20,column=3)
     
     def addOM(self, name, rowDD, label):
-        newLabel = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
+        self.omLabels[name] = tk.Label(self, text=f'{label}:', font=LARGE_FONT)
         self.currentValue[name] = tk.StringVar(self)
         self.currentValue[name].set('Select..')
         self.menus[name] = tk.OptionMenu(self, self.currentValue[name], *self.dbLists[name])
-        newLabel.grid(row=rowDD, column=1)
+        self.omLabels[name].grid(row=rowDD, column=1)
         self.menus[name].grid(row=rowDD, column=2, pady=5)
         self.menus[name].config(width = 14)
+    
+    def showHatched(self, *args):
+        if(self.hatchedPrev == self.currentValue['lifeStages'].get()):
+            return
         
+        self.hatchedPrev = self.currentValue['lifeStages'].get()
+        
+        if(self.currentValue['lifeStages'].get() != 'Egg' and self.hatchedHidden):
+            self.hatchedHidden = False
+            # avg length
+            self.avgLen = tk.StringVar()
+            self.hiddenWids['avgLenLabel'] = tk.Label(self, text='Average Length:', font=LARGE_FONT)
+            self.hiddenWids['avgLenEntry'] = tk.Entry(self,textvariable=self.avgLen)
+            self.hiddenWids['avgLenLabel'].grid(row=8, column=1)
+            self.hiddenWids['avgLenEntry'].grid(row=8, column=2)
+            
+            # avg weight
+            self.avgWt = tk.StringVar()
+            self.hiddenWids['avgWtLabel'] = tk.Label(self, text='Average Weight:', font=LARGE_FONT)
+            self.hiddenWids['avgWtEntry'] = tk.Entry(self,textvariable=self.avgWt)
+            self.hiddenWids['avgWtLabel'].grid(row=9, column=1)
+            self.hiddenWids['avgWtEntry'].grid(row=9, column=2)
+            
+            # Tag Type
+            self.dbLists['tag'] = qf.getTagTypes()
+            self.addOM('tag', 10, 'Tag Type')
+            self.currentValue['tag'].trace('w', self.showPTagged)
+            
+        if(self.currentValue['lifeStages'].get() == 'Egg'):
+            self.hatchedHidden = True
+            try:
+                self.hiddenWids['avgLenLabel'].destroy()
+                self.hiddenWids['avgLenEntry'].destroy()
+                self.hiddenWids['avgWtLabel'].destroy()
+                self.hiddenWids['avgWtEntry'].destroy()
+                self.menus['tag'].destroy()
+                self.omLabels['tag'].destroy()
+                self.hiddenWids['pTagLabel'].destroy()
+                self.hiddenWids['pTagLabel'].destroy()
+            except:
+                None
+            
+    def showPTagged(self, *args):
+        if(self.taggedPrev == self.currentValue['tag'].get()):
+            return
+        self.taggedPrev = self.currentValue['tag'].get()
+
+        if((self.currentValue['tag'].get() != 'None' or self.currentValue['tag'] == None) and self.taggedHidden):
+            self.taggedHidden = False
+            # Tag Percent
+            self.pTagged = tk.StringVar()
+            self.hiddenWids['pTagLabel'] = tk.Label(self, text='Percent Tagged:', font=LARGE_FONT)
+            self.hiddenWids['pTagEntry'] = tk.Entry(self,textvariable=self.pTagged)
+            self.hiddenWids['pTagLabel'].grid(row=11, column=1)
+            self.hiddenWids['pTagEntry'].grid(row=11, column=2)
+        if(self.currentValue['tag'].get() == 'None'):
+            self.taggedHidden = True
+            try:
+                self.hiddenWids['pTagLabel'].destroy()
+                self.hiddenWids['pTagEntry'].destroy()
+            except:
+                None
+
+    def showDistoType(self, *args):
+        if(self.currentValue['type'].get() == 'Transfer'):
+            # transfer facility
+            self.dbLists['tFacility'] = qf.getFacilities()
+            self.addOM('tFacility', 13, 'Transfer Facility Name')
+            try:
+                self.hiddenWids['latLabel'].destroy()
+                self.hiddenWids['latEntry'].destroy()
+                self.hiddenWids['longLabel'].destroy()
+                self.hiddenWids['longEntry'].destroy()
+            except:
+                None
+        else:
+            # lat
+            self.lat = tk.StringVar()
+            self.hiddenWids['latLabel'] = tk.Label(self, text='Release Latitude:', font=LARGE_FONT)
+            self.hiddenWids['latEntry'] = tk.Entry(self,textvariable=self.lat)
+            self.hiddenWids['latLabel'].grid(row=15, column=1)
+            self.hiddenWids['latEntry'].grid(row=15, column=2)
+
+            # long
+            self.long = tk.StringVar()
+            self.hiddenWids['longLabel'] = tk.Label(self, text='Release Longitude:', font=LARGE_FONT)
+            self.hiddenWids['longEntry'] = tk.Entry(self,textvariable=self.long)
+            self.hiddenWids['longLabel'].grid(row=16, column=1)
+            self.hiddenWids['longEntry'].grid(row=16, column=2)
+            try:
+                self.menus['tFacility'].destroy()
+                self.omLabels['tFacility'].destroy()
+            except:
+                None
+
     def checkInt(self, name, input):
-        if(input == None):
+        if(input == None or input == ''):
             # error popup
             print(f'WARNING: {name} is required')
             return False
         if(not input.isdigit()):
             # error popup
             print(f'WARNING: {name} not number')
+            return False
+        if(len(input) > 8):
+            #error popup
+            print(f"WARNING: {name} is too long")
             return False
         if(name == 'Percent Tagged'):
             if(int(input) == 0 or int(input) >= (100)):
@@ -253,49 +295,51 @@ class CreateDistro(tk.Frame):
     def create(self):
         inputs = {}
         
+        # add date
+        inputs['date'] = str(self.calEntry.get_date())
+        
         # check values from dropdowns and add them to inputs
         for key in self.currentValue:
             if(self.currentValue[key].get() == 'Select..'):
-                # error popup
-                print(f'WARNING: {key} is required')
-                return
+                if(not (key == 'tFacility' and self.currentValue['type'].get() == 'Release')):
+                    # error popup
+                    print(f'WARNING: {key} is required')
+                    return
             inputs[key] = self.currentValue[key].get()
         
-        # check textboxes
-        # check count
-        if(not self.checkInt('Count', self.count.get())):
+        if(self.currentValue['lifeStages'].get() != 'Egg'):
+            # check and add length
+            if(not self.checkInt('Average Length', str(self.avgLen.get()).replace('.','',1))):
+                return
+            inputs['avgLen'] = str(self.avgLen.get())
+
+            # check and add weight
+            if(not self.checkInt('Average Weight', str(self.avgWt.get()).replace('.','',1))):
+                return
+            inputs['avgWt'] = str(self.avgWt.get())
+            
+            if(self.currentValue['tag'].get() != 'None'):
+                # check and add percent tagged
+                if(not self.checkInt('Percent Tagged', str(self.pTagged.get()).replace('.','',1))):
+                    return
+                inputs['pTagged'] = str(self.pTagged.get())
+
+        if(self.currentValue['type'].get() == 'Release'):
+            # check and add lat
+            if(not self.checkInt('Latitude', str(self.lat.get()).replace('.','',1))):
+                return
+            inputs['lat'] = str(self.lat.get())
+
+            # check and add long
+            if(not self.checkInt('Longitude', str(self.long.get()).replace('.','',1))):
+                return
+            inputs['long'] = str(self.long.get())
+        
+        # check and add count
+        if(not self.checkInt('Count', str(self.count.get()))):
             return
         inputs['Count'] = str(self.count.get())
-        
-        # check tagged fields
-        if(['type'].get() != None):
-            if(not self.checkInt('Percent Tagged', self.pTagged.get())):
-                return
-            inputs['pTagged'] = str(self.pTagged.get())
-        
-        # check released
-        if(not self.checkInt('Average Length', self.avgLen.replace('.','',1))):
-            return
-        inputs['avgLen'] = str(self.avgLen.get())
 
-        if(not self.checkInt('Average Weight', self.avgLen.replace('.','',1))):
-            return
-        inputs['avgLen'] = str(self.avgLen.get())
-
-        if(not self.checkInt('Latitude', self.avgLen.replace('.','',1))):
-            return
-        inputs['avgLen'] = str(self.avgLen.get())
-
-        if(not self.checkInt('Longitude', self.avgLen.replace('.','',1))):
-            return
-        inputs['avgLen'] = str(self.avgLen.get())
-        
-        
-        inputs['date'] = str(self.calEntry.get_date())
-        inputs['avgLen'] = str(self.avgLen.get())
-        inputs['avgWt'] = str(self.avgWt.get())
-        inputs['lat'] = str(self.lat.get())
-        inputs['long'] = str(self.long.get())
         qf.createDistro(inputs)
         
 class SearchDistros(tk.Frame):

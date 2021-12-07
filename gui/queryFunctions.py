@@ -337,16 +337,15 @@ def createDistro(input):
   itis = cursor.fetchone()
   
   sqlDistro = f"INSERT INTO DISTRIBUTION (Date, Count, Fname, S_ITIS) VALUES ('{input['date']}', {input['Count']}, '{input['facilities']}', {itis[0]});"
-  print(sqlDistro)
   cursor.execute(sqlDistro)
   
   if(input['type'] == 'Release'):
-    sql = f"INSERT INTO RELEASED (Distribution_ID, Latitude, Longitude) VALUES (LAST_INSERT_ID(), input['lat'], input['long']);"
+    sql = f"INSERT INTO RELEASED (Distribution_ID, Latitude, Longitude) VALUES (LAST_INSERT_ID(), {input['lat']}, {input['long']});"
     cursor.execute(sql)
     if(input['lifeStages'] != 'Egg'):
-      sql = "INSERT INTO HATCHED_DISTRIBUTION (Average_length, Average_weight, life_stage) VALUES (input['avgLen'], input['avgWt'], 'input['lifeStages']');"
+      sql = f"INSERT INTO HATCHED_DISTRIBUTION (Average_length, Average_weight, life_stage) VALUES ({input['avgLen']}, {input['avgWt']}, '{input['lifeStages']}');"
       cursor.execute(sql)
-      cursor.exexecuteicute("UPDATE RELEASED SET HID = LAST_INSERT_ID();")
+      cursor.execute("UPDATE RELEASED SET HID = LAST_INSERT_ID();")
       if(input['tag'] != 'None'):
         sql = f"INSERT INTO TAGGED_DISTRIBUTION (tag_type, percent_tagged, HID) VALUES ('{input['tag']}', {input['pTagged']}, LAST_INSERT_ID());"
         cursor.execute(sql)
@@ -355,7 +354,7 @@ def createDistro(input):
     sql = f"INSERT INTO TRANSFER (Distribution_ID, F_Name) VALUES (LAST_INSERT_ID(), '{input['tFacility']}');"
     cursor.execute(sql)
     if(input['lifeStages'] != 'Egg'):
-      sql = "INSERT INTO HATCHED_DISTRIBUTION (Average_length, Average_weight, life_stage) VALUES (input['avgLen'], input['avgWt'], 'input['lifeStages']');"
+      sql = f"INSERT INTO HATCHED_DISTRIBUTION (Average_length, Average_weight, life_stage) VALUES ({input['avgLen']}, {input['avgWt']}, '{input['lifeStages']}');"
       cursor.execute(sql)
       cursor.execute("UPDATE TRANSFER SET HID = LAST_INSERT_ID();")
       if(input['tag'] != 'None'):
@@ -363,6 +362,3 @@ def createDistro(input):
         cursor.execute(sql)
 
   database.commit()
-  
-  for key in input:
-    print(key, input[key])
