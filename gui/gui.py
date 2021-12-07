@@ -681,11 +681,11 @@ class EditDistro(tk.Frame):
                     self.subVals[i] = self.currentValue[i].get()
                 else:
                     self.subVals[i] = self.entries[i].get()
-        for i in self.distroVals:
-            print(self.distroVals[i])
-
-        for i in self.subVals:
-            print(self.subVals[i])
+        # for i in self.distroVals:
+        #     print(self.distroVals[i])
+        #
+        # for i in self.subVals:
+        #     print(self.subVals[i])
 
     def hatch(self, h_id):
         """This function posts onto the frame if the distribution id is a hatched distribution"""
