@@ -1,7 +1,0 @@
-Use the code in setup.txt
-
-Replace acochr5db with your db name
-
-Put that code in a sql file
-
-Then while in putty and in mysql run source <filename> to set up the project
